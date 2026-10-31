@@ -1,0 +1,9 @@
+references/
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+*.log
+.DS_Store
+spike/**/out/
