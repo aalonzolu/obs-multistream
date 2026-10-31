@@ -7,3 +7,16 @@ __pycache__/
 *.log
 .DS_Store
 spike/**/out/
+build_*/
+.deps/
+release/
+*.lock.json
+cmake/.CMakeBuildNumber
+broker/node_modules/
+broker/.wrangler/
+broker/.dev.vars
+tests/e2e/.venv/
+tests/e2e/out/
+local-config.cmake
+auto.crt
+auto.key
