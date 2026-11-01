@@ -135,7 +135,7 @@ jobs:
           git clone --depth 1 --branch "${{ steps.obs.outputs.version }}" https://github.com/obsproject/obs-studio.git "$RUNNER_TEMP/obs-studio"
           cmake -S "$RUNNER_TEMP/obs-studio" -B "$RUNNER_TEMP/obs-build" -G Ninja \
             -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/obs-sdk" \
-            -DENABLE_UI=OFF -DENABLE_FRONTEND_API=ON -DENABLE_PLUGINS=OFF -DENABLE_SCRIPTING=OFF \
+            -DENABLE_UI=OFF -DENABLE_FRONTEND=OFF -DENABLE_PLUGINS=OFF -DENABLE_SCRIPTING=OFF \
             -DENABLE_WEBSOCKET=OFF -DENABLE_BROWSER=OFF -DENABLE_NEW_MPEGTS_OUTPUT=OFF -DENABLE_AJA=OFF \
             -DENABLE_VLC=OFF -DENABLE_WAYLAND=OFF -DENABLE_PIPEWIRE=OFF
           cmake --build "$RUNNER_TEMP/obs-build" --parallel
