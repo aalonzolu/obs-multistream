@@ -38,6 +38,11 @@ def launch_obs(timeout: float = 60, dev_targets: bool = False) -> obs.ReqClient:
         subprocess.run(["open", "-a", "OBS", *env, "--args", "--disable-shutdown-check"], check=True)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
+        subprocess.run(
+            ["osascript", "-e",
+             'tell application "System Events" to tell process "OBS" to click button "Run in Normal Mode" of group 1 of window 1'],
+            capture_output=True,
+        )
         try:
             client = obs.ReqClient(host="127.0.0.1", port=4455, password=(OUT / "ws-password").read_text(), timeout=10)
             client.get_scene_collection_list()

@@ -699,7 +699,7 @@ void Coordinator::finalizeRecovered()
 						Journal::shared().setSessionState(session.uuid, QStringLiteral("FINISHED"));
 						setState(SessionState::Idle, QStringLiteral("Se cerró la emisión anterior."));
 					} else {
-						recovered_.prepend(Journal::shared().unfinished().value(0));
+						recovered_ = Journal::shared().unfinished();
 						setState(SessionState::Attention,
 							 QStringLiteral("No se pudo confirmar el cierre en %1.").arg(failures->join(QStringLiteral(", "))));
 					}
