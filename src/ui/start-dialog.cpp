@@ -662,9 +662,9 @@ void StartDialog::refresh()
 	remove_->setEnabled(!selectedId.isEmpty());
 
 	const bool radioStarting = radioSelected();
-	const radio::Format &radioFormat = radio::format(radio_ ? radio_->config().formatId : QString());
+	const radio::Format radioFormat = radio::format(radio_ ? radio_->config().formatId : QString());
 	const int radioKbps = !radioStarting ? 0 : radioFormat.bitrates.isEmpty() ? 900 : radio_->config().bitrateKbps;
-	const MediaProfile &profile = mediaProfile(profile_->currentData().toString());
+	const MediaProfile profile = mediaProfile(profile_->currentData().toString());
 	const int videoKbps = selected * (profile.videoBitrateKbps + profile.audioBitrateKbps);
 	upload_->setText(QStringLiteral("≈ %1 Mbps de subida").arg((videoKbps + radioKbps) / 1000.0, 0, 'f', 1));
 	upload_->setToolTip(QStringLiteral("%1 destino(s) de video × %2 kbps, más %3 kbps de radio, sin contar overhead.")

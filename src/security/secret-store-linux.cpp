@@ -1,3 +1,6 @@
+// GLib declares a struct member named "signals", which the Qt keyword macro would rewrite.
+#define QT_NO_KEYWORDS
+
 #include "security/secret-store.hpp"
 
 #include <libsecret/secret.h>
