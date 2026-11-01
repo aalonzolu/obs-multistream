@@ -1,0 +1,14 @@
+{
+  "name": "obs-multistream-broker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "tsc --noEmit",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261031.1",
+    "typescript": "^7.0.2",
+    "wrangler": "^4.156.0"
+  }
+}
