@@ -115,7 +115,8 @@ jobs:
             libcurl4-openssl-dev libsimde-dev libjansson-dev zlib1g-dev uuid-dev \
             libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
             libsecret-1-dev libx11-dev libx11-xcb-dev libxcb1-dev libxcb-xinput-dev \
-            libgl1-mesa-dev libegl-dev libwayland-dev libpci-dev libvpl-dev
+            libgl1-mesa-dev libegl-dev libwayland-dev libpci-dev libvpl-dev \
+            extra-cmake-modules libxkbcommon-dev libxcb-xfixes0-dev libxcb-composite0-dev libxcb-randr0-dev libxcb-shm0-dev libxcb-xinerama0-dev libudev-dev libdrm-dev libvulkan-dev
 
       - name: Versión de OBS
         id: obs
