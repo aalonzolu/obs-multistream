@@ -37,7 +37,15 @@
 ## Pendiente
 
 - Compilar y probar en Windows (no hay minutos de GitHub Actions; opciones: repo público o runner propio).
-- Agregar a `cuenta-de-prueba` como tester de la app de Meta.
-- Google: pasar la app a producción para evitar la caducidad de 7 días del refresh token.
-- Meta: comprobar visibilidad pública con la app en modo desarrollo y pasarla a modo Live para la página de la iglesia.
+- Google: la app está **en producción sin verificar** (aviso de "app no verificada", hasta 100 usuarios). La verificación formal del permiso sensible `youtube.force-ssl` queda opcional.
+- Meta: la app está **publicada (modo activo)** con acceso estándar; solo autorizan cuentas con rol en la app (`cuenta-de-prueba` ya es tester).
 - Pruebas largas (60 min y 120 min con grabación local) y aceptación con operador.
+
+## Infraestructura
+
+| Pieza | Dónde |
+|---|---|
+| Proyecto de Google | `<proyecto-google>` («Multistream OBS»), cliente de escritorio «Multistream OBS Desktop», en producción. |
+| App de Meta | `<id-app-meta>` («Multistream OBS»), configuración de login `<id-config-login>`, publicada. |
+| Servicio de Facebook | `https://<tu-worker>.workers.dev` (cuenta personal de Cloudflare, D1 `obs-multistream-broker`). Desplegar con `XDG_CONFIG_HOME=~/.config/obs-multistream-cf npx wrangler deploy` dentro de `broker/`. |
+| Configuración de compilación | `local-config.cmake` (fuera de git): cliente de Google y URL del servicio. |
