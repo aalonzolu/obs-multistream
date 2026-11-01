@@ -126,7 +126,9 @@ SessionController::StopChoice SessionController::confirmStop()
 	}
 	QMessageBox box(window_);
 	box.setObjectName(QStringLiteral("multistream-confirm-stop"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
 	box.setOption(QMessageBox::Option::DontUseNativeDialog);
+#endif
 	box.setIcon(QMessageBox::Question);
 	box.setWindowTitle(QStringLiteral("Finalizar transmisión"));
 	box.setText(QStringLiteral("¿Finalizar la transmisión?"));
