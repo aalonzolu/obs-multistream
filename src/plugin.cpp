@@ -1,12 +1,14 @@
 #include "plugin.hpp"
 
 #include "build-config.hpp"
+#include "providers/custom-rtmp.hpp"
 #include "providers/local-test.hpp"
 #include "providers/meta-broker.hpp"
 #include "providers/tiktok-streamlabs.hpp"
 #include "providers/youtube.hpp"
 #include "radio/radio-config.hpp"
 #include "storage/settings.hpp"
+#include "ui/alert-center.hpp"
 #include "ui/session-controller.hpp"
 #include "ui/status-strip.hpp"
 #include "ui/status-window.hpp"
@@ -86,6 +88,7 @@ Plugin::Plugin()
 		for (const auto &[id, name, identity] : demo) {
 			auto *provider = new LocalTestProvider(id, name, coordinator_);
 			provider->setIdentity(identity);
+			provider->setSchedulable(id != QStringLiteral("tiktok"));
 			localProviders_[id] = provider;
 			coordinator_->addProvider(provider);
 		}
@@ -103,7 +106,11 @@ Plugin::Plugin()
 	}
 
 	mainWindow_ = static_cast<QMainWindow *>(obs_frontend_get_main_window());
-	controller_ = new ui::SessionController(coordinator_, radio_, mainWindow_, this);
+	for (const QString &id : CustomRtmpProvider::storedIds())
+		coordinator_->addProvider(new CustomRtmpProvider(id, coordinator_));
+	scheduler_ = new Scheduler(coordinator_, this);
+	alerts_ = new ui::AlertCenter(coordinator_, radio_, this);
+	controller_ = new ui::SessionController(coordinator_, radio_, scheduler_, alerts_, mainWindow_, this);
 	if (mainWindow_)
 		mainWindow_->installEventFilter(this);
 
@@ -430,6 +437,105 @@ void Plugin::registerTestRequests()
 					modal->close();
 			});
 		return success({{QStringLiteral("title"), title}});
+	});
+
+	vendor_.add(QStringLiteral("StartSession"), [this](const QJsonObject &request) {
+		ui::SessionRequest session{text(request, "title"), text(request, "description"), request.value(QStringLiteral("video")).toBool(true),
+					   request.value(QStringLiteral("radio")).toBool(), request.value(QStringLiteral("record")).toBool(),
+					   text(request, "scheduled_id"), {}};
+		if (!session.scheduledId.isEmpty()) {
+			const auto entry = scheduler_->entry(session.scheduledId);
+			if (!entry)
+				return failure(QStringLiteral("no existe la transmisión programada"));
+			session.scheduledRefs = entry->refs();
+		}
+		controller_->startSession(session);
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("RecordingStatus"), [this](const QJsonObject &) {
+		return success({{QStringLiteral("active"), obs_frontend_recording_active()}, {QStringLiteral("owned"), controller_->recording()}});
+	});
+
+	vendor_.add(QStringLiteral("CustomAdd"), [this](const QJsonObject &request) {
+		auto *provider = new CustomRtmpProvider(CustomRtmpProvider::newId(), coordinator_);
+		QString error;
+		if (!provider->save({text(request, "name"), text(request, "server"), text(request, "key"), text(request, "watch_url")}, &error)) {
+			CustomRtmpProvider::forget(provider->id());
+			delete provider;
+			return failure(error);
+		}
+		coordinator_->addProvider(provider);
+		return success({{QStringLiteral("id"), provider->id()}});
+	});
+
+	vendor_.add(QStringLiteral("CustomRemove"), [this](const QJsonObject &request) {
+		const QString id = text(request, "id");
+		Provider *provider = coordinator_->provider(id);
+		if (!provider || !CustomRtmpProvider::isCustom(id) || !coordinator_->removeProvider(id))
+			return failure(QStringLiteral("no se pudo quitar el destino"));
+		CustomRtmpProvider::forget(id);
+		provider->deleteLater();
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("ScheduleCreate"), [this](const QJsonObject &request) {
+		const QStringList providers = text(request, "providers").split(QLatin1Char(','), Qt::SkipEmptyParts);
+		const QDateTime startsAt = QDateTime::fromString(text(request, "starts_at"), Qt::ISODate);
+		if (!startsAt.isValid())
+			return failure(QStringLiteral("fecha inválida"));
+		scheduler_->create(text(request, "title"), text(request, "description"), startsAt, providers,
+				   [this](const ScheduledEntry &, const QStringList &errors) { lastScheduleErrors_ = errors; });
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("ScheduleList"), [this](const QJsonObject &) {
+		QJsonArray entries;
+		for (const ScheduledEntry &entry : scheduler_->upcoming()) {
+			QJsonObject broadcasts;
+			for (auto it = entry.broadcasts.begin(); it != entry.broadcasts.end(); ++it)
+				broadcasts.insert(it.key(), QJsonObject{{QStringLiteral("ref"), it->ref}, {QStringLiteral("url"), it->publicUrl}});
+			entries.append(QJsonObject{{QStringLiteral("id"), entry.id},
+						   {QStringLiteral("title"), entry.title},
+						   {QStringLiteral("starts_at"), entry.startsAt.toString(Qt::ISODate)},
+						   {QStringLiteral("broadcasts"), broadcasts},
+						   {QStringLiteral("share"), entry.shareText(*coordinator_)}});
+		}
+		const auto due = scheduler_->dueNow();
+		return success({{QStringLiteral("entries"), entries},
+				{QStringLiteral("due"), due ? due->id : QString()},
+				{QStringLiteral("errors"), lastScheduleErrors_.join(QStringLiteral(" | "))}});
+	});
+
+	vendor_.add(QStringLiteral("ScheduleCancel"), [this](const QJsonObject &request) {
+		scheduler_->cancel(text(request, "id"), [this](const QStringList &errors) { lastScheduleErrors_ = errors; });
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("AlertStatus"), [this](const QJsonObject &) {
+		return success({{QStringLiteral("silent"), alerts_->silent()},
+				{QStringLiteral("track"), alerts_->silentTrack()},
+				{QStringLiteral("seconds"), alerts_->silentSeconds()},
+				{QStringLiteral("last"), alerts_->lastAlert()}});
+	});
+
+	vendor_.add(QStringLiteral("DevCancelledRefs"), [this](const QJsonObject &request) {
+		auto found = localProviders_.find(text(request, "provider"));
+		if (found == localProviders_.end())
+			return failure(QStringLiteral("proveedor de prueba no disponible"));
+		return success({{QStringLiteral("refs"), found->second->cancelledRefs().join(QLatin1Char(','))}});
+	});
+
+	vendor_.add(QStringLiteral("OpenScheduleWindow"), [this](const QJsonObject &request) {
+		QTimer::singleShot(0, controller_, [this, title = text(request, "title"), description = text(request, "description")] {
+			controller_->openScheduleWindow(title, description);
+		});
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("OpenAddCustom"), [this](const QJsonObject &) {
+		QTimer::singleShot(0, controller_, &ui::SessionController::addCustomDestination);
+		return success();
 	});
 
 	vendor_.add(QStringLiteral("OpenStatusWindow"), [this](const QJsonObject &) {

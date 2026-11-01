@@ -7,6 +7,8 @@ Plugin para OBS Studio que transmite a Facebook, YouTube, TikTok y una radio Ice
 - Un clic en «Iniciar transmisión» abre la ventana **Transmitir**: título, descripción, destinos y calidad, con plantillas de las transmisiones recientes.
 - Cada destino es independiente: si uno se cae, los demás siguen; se puede reintentar en el mismo directo o crear uno nuevo solo ahí.
 - **Radio** (Icecast, AzuraCast, Liquidsoap) en MP3, AAC, Opus, Vorbis o FLAC, sola o junto con el video. Reemplaza a programas como BUTT.
+- **Programar con anticipación** en YouTube (y en Facebook si Meta aprobó la app) para compartir el enlace antes del evento.
+- **Destinos RTMP propios** (Kick, Vimeo, un servidor propio), **grabación local** a la vez y **avisos** con sonido cuando un destino se cae o el audio queda en silencio.
 - Todo vive en la barra de estado de OBS; no agrega paneles.
 
 **Estado:** probado en macOS con las tres plataformas y una radio AzuraCast. Windows se compila en GitHub Actions y está pendiente de probar en un equipo real.

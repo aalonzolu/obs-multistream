@@ -23,6 +23,17 @@ void Provider::chooseDestination(const QString &, Callback<Account> done)
 						  QStringLiteral("Este destino no requiere elegir página o canal."))));
 }
 
+void Provider::schedule(const ScheduleRequest &, Callback<ScheduledBroadcast> done)
+{
+	done(Result<ScheduledBroadcast>::failure(Error::make(ErrorKind::Internal, QStringLiteral("UNSUPPORTED"),
+							     QStringLiteral("%1 no permite programar transmisiones.").arg(displayName()))));
+}
+
+void Provider::cancelScheduled(const QString &, Callback<bool> done)
+{
+	done(Result<bool>::success(true));
+}
+
 namespace {
 
 bool gBrowserSuppressed = false;

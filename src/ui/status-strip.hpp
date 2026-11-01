@@ -8,6 +8,7 @@
 #include <map>
 
 class QAction;
+class QHBoxLayout;
 class QMenu;
 class QToolButton;
 
@@ -27,6 +28,7 @@ public slots:
 	void render();
 
 private:
+	void rebuildBadges();
 	void openDestinationMenu(DestinationBadge *badge);
 	void openRadioMenu();
 	void openSettingsMenu();
@@ -35,6 +37,8 @@ private:
 	SessionController *controller_;
 	Coordinator *coordinator_;
 	StatusPill *session_;
+	StatusPill *silence_;
+	QHBoxLayout *badgeLayout_;
 	std::map<QString, DestinationBadge *> badges_;
 	DestinationBadge *radio_;
 	QToolButton *settings_;

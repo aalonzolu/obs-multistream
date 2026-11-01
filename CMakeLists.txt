@@ -64,12 +64,18 @@ target_sources(
     src/media/media-profile.hpp
     src/media/output-runtime.cpp
     src/media/output-runtime.hpp
+    src/media/silence-monitor.cpp
+    src/media/silence-monitor.hpp
     src/net/http-client.cpp
     src/net/http-client.hpp
     src/net/loopback-receiver.cpp
     src/net/loopback-receiver.hpp
     src/orchestration/coordinator.cpp
     src/orchestration/coordinator.hpp
+    src/orchestration/scheduler.cpp
+    src/orchestration/scheduler.hpp
+    src/providers/custom-rtmp.cpp
+    src/providers/custom-rtmp.hpp
     src/providers/local-test.cpp
     src/providers/local-test.hpp
     src/providers/meta-broker.cpp
@@ -97,8 +103,12 @@ target_sources(
     src/storage/settings.hpp
     src/testing/websocket-vendor.cpp
     src/testing/websocket-vendor.hpp
+    src/ui/alert-center.cpp
+    src/ui/alert-center.hpp
     src/ui/brand-mark.cpp
     src/ui/brand-mark.hpp
+    src/ui/custom-dialog.cpp
+    src/ui/custom-dialog.hpp
     src/ui/destination-badge.cpp
     src/ui/destination-badge.hpp
     src/ui/destination-row.cpp
@@ -111,6 +121,8 @@ target_sources(
     src/ui/radio-dialog.hpp
     src/ui/radio-row.cpp
     src/ui/radio-row.hpp
+    src/ui/schedule-dialog.cpp
+    src/ui/schedule-dialog.hpp
     src/ui/session-controller.cpp
     src/ui/session-controller.hpp
     src/ui/start-dialog.cpp

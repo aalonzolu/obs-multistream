@@ -24,7 +24,8 @@ JournalTarget targetFromJson(const QJsonObject &object)
 		object.value(QStringLiteral("remote_id")).toString(),
 		object.value(QStringLiteral("remote_stream_id")).toString(),
 		object.value(QStringLiteral("public_url")).toString(),
-		object.value(QStringLiteral("last_error")).toString()};
+		object.value(QStringLiteral("last_error")).toString(),
+		object.value(QStringLiteral("scheduled")).toBool()};
 }
 
 } // namespace
@@ -93,6 +94,7 @@ void Journal::updateTarget(const QString &uuid, const JournalTarget &target)
 			{QStringLiteral("remote_stream_id"), target.remoteStreamId},
 			{QStringLiteral("public_url"), target.publicUrl},
 			{QStringLiteral("last_error"), target.lastError},
+			{QStringLiteral("scheduled"), target.scheduled},
 			{QStringLiteral("updated_at"), utcNow()},
 		};
 		bool replaced = false;

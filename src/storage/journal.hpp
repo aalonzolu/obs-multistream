@@ -14,6 +14,7 @@ struct JournalTarget {
 	QString remoteStreamId;
 	QString publicUrl;
 	QString lastError;
+	bool scheduled = false;
 };
 
 struct JournalSession {

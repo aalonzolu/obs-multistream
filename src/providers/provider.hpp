@@ -2,6 +2,7 @@
 
 #include "core/result.hpp"
 
+#include <QDateTime>
 #include <QList>
 #include <QObject>
 #include <QString>
@@ -22,6 +23,7 @@ struct StartIntent {
 	QString sessionUuid;
 	QString title;
 	QString description;
+	QString scheduledRef;
 };
 
 struct PreparedSession {
@@ -29,6 +31,18 @@ struct PreparedSession {
 	QString remoteStreamId;
 	QString server;
 	QString key;
+	QString publicUrl;
+	bool scheduled = false;
+};
+
+struct ScheduleRequest {
+	QString title;
+	QString description;
+	QDateTime startsAt;
+};
+
+struct ScheduledBroadcast {
+	QString ref;
 	QString publicUrl;
 };
 
@@ -68,6 +82,10 @@ public:
 	virtual void prepare(const StartIntent &intent, Callback<PreparedSession> done) = 0;
 	virtual void inspect(const PreparedSession &session, Callback<RemoteStatus> done) = 0;
 	virtual void finalize(const PreparedSession &session, Callback<RemoteStatus> done) = 0;
+
+	virtual bool supportsScheduling() const { return false; }
+	virtual void schedule(const ScheduleRequest &request, Callback<ScheduledBroadcast> done);
+	virtual void cancelScheduled(const QString &ref, Callback<bool> done);
 
 signals:
 	void accountChanged();

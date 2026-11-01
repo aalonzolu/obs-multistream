@@ -10,6 +10,7 @@
 class QFrame;
 class QLabel;
 class QPushButton;
+class QVBoxLayout;
 
 namespace multistream::ui {
 
@@ -30,6 +31,7 @@ public slots:
 	void render();
 
 private:
+	void buildRows();
 	void renderNotice(SessionState state);
 	void renderPrimary(SessionState state);
 	void fitContent();
@@ -39,6 +41,7 @@ private:
 	StatusPill *session_;
 	ElidedLabel *title_;
 	std::map<QString, DestinationRow *> rows_;
+	QVBoxLayout *rowsLayout_;
 	RadioRow *radioRow_;
 	QFrame *notice_;
 	QLabel *noticeText_;

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orchestration/coordinator.hpp"
+#include "orchestration/scheduler.hpp"
 #include "radio/radio-station.hpp"
 #include "storage/settings.hpp"
 
@@ -8,6 +9,7 @@
 
 #include <functional>
 #include <map>
+#include <optional>
 
 class QCheckBox;
 class QComboBox;
@@ -29,18 +31,22 @@ struct AccountActions {
 	std::function<void(const QString &)> chooseDestination;
 	std::function<bool(const QString &)> connecting;
 	std::function<void()> configureRadio;
+	std::function<void(const QString &title, const QString &description)> schedule;
 };
 
 class StartDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	StartDialog(Coordinator *coordinator, radio::Station *radio, AccountActions actions, QWidget *parent = nullptr);
+	StartDialog(Coordinator *coordinator, radio::Station *radio, Scheduler *scheduler, AccountActions actions, QWidget *parent = nullptr);
 
 	QString renderedTitle() const;
 	QString renderedDescription() const;
 	bool videoSelected() const;
 	bool radioSelected() const;
+	bool recordAlong() const;
+	QString scheduledId() const;
+	QHash<QString, QString> scheduledRefs() const;
 
 public slots:
 	void refreshDestinations();
@@ -76,10 +82,16 @@ private:
 	QString blockingReason(int videoCount, bool radioStarting) const;
 	void addRadioLine(QGridLayout *grid, int row, QWidget *panel);
 	void refreshRadio();
+	void refreshScheduled();
+	void applyScheduled(bool use);
 
 	Coordinator *coordinator_;
 	radio::Station *radio_;
+	Scheduler *scheduler_;
 	AccountActions actions_;
+	std::optional<ScheduledEntry> scheduled_;
+	QCheckBox *useScheduled_ = nullptr;
+	QCheckBox *record_ = nullptr;
 	QList<StreamTemplate> templates_;
 	QListWidget *list_ = nullptr;
 	QToolButton *save_ = nullptr;

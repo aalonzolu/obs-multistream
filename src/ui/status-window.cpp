@@ -1,6 +1,7 @@
 #include "ui/status-window.hpp"
 
 #include "providers/provider.hpp"
+#include "ui/alert-center.hpp"
 #include "ui/destination-row.hpp"
 #include "ui/presentation.hpp"
 #include "ui/radio-row.hpp"
@@ -65,6 +66,7 @@ StatusWindow::StatusWindow(SessionController *controller, QWidget *parent)
 	  coordinator_(controller->coordinator()),
 	  session_(new StatusPill(StatusPill::Size::Prominent, this)),
 	  title_(new ElidedLabel(this)),
+	  rowsLayout_(new QVBoxLayout()),
 	  radioRow_(new RadioRow(controller->radio(), this)),
 	  notice_(new NoticeFrame(this)),
 	  noticeText_(new QLabel(notice_)),
@@ -91,23 +93,17 @@ StatusWindow::StatusWindow(SessionController *controller, QWidget *parent)
 	auto *rows = new QVBoxLayout();
 	rows->setContentsMargins(4, 0, 4, 0);
 	rows->setSpacing(0);
-	bool first = true;
-	for (const QString &id : coordinator_->providerIds()) {
-		if (!first)
-			rows->addWidget(divider(this));
-		first = false;
-		auto *row = new DestinationRow(id, this);
-		rows_[id] = row;
-		rows->addWidget(row);
-		connect(row, &DestinationRow::connectRequested, controller_, &SessionController::connectProvider);
-		connect(row, &DestinationRow::chooseDestinationRequested, controller_, &SessionController::chooseDestination);
-		connect(row, &DestinationRow::disconnectRequested, controller_, &SessionController::disconnectProvider);
-		connect(row, &DestinationRow::retryRequested, coordinator_, &Coordinator::retry);
-		connect(row, &DestinationRow::restartRequested, coordinator_, &Coordinator::restartTarget);
-		connect(row, &DestinationRow::openRequested, this, [](const QString &url) { openInBrowser(url); });
-	}
+	rowsLayout_->setContentsMargins(0, 0, 0, 0);
+	rowsLayout_->setSpacing(0);
+	rows->addLayout(rowsLayout_);
+	buildRows();
 	rows->addWidget(divider(this));
 	rows->addWidget(radioRow_);
+	connect(coordinator_, &Coordinator::providersChanged, this, [this] {
+		buildRows();
+		render();
+	});
+	connect(controller_->alerts(), &AlertCenter::changed, this, &StatusWindow::render);
 	connect(radioRow_, &RadioRow::configureRequested, controller_, &SessionController::openRadioSettings);
 	connect(controller_->radio(), &radio::Station::changed, this, &StatusWindow::render);
 
@@ -164,13 +160,41 @@ StatusWindow::StatusWindow(SessionController *controller, QWidget *parent)
 	render();
 }
 
+void StatusWindow::buildRows()
+{
+	while (QLayoutItem *item = rowsLayout_->takeAt(0)) {
+		if (item->widget())
+			item->widget()->deleteLater();
+		delete item;
+	}
+	rows_.clear();
+	bool first = true;
+	for (const QString &id : coordinator_->providerIds()) {
+		if (!first)
+			rowsLayout_->addWidget(divider(this));
+		first = false;
+		auto *row = new DestinationRow(id, this);
+		rows_[id] = row;
+		rowsLayout_->addWidget(row);
+		connect(row, &DestinationRow::connectRequested, controller_, &SessionController::connectProvider);
+		connect(row, &DestinationRow::chooseDestinationRequested, controller_, &SessionController::chooseDestination);
+		connect(row, &DestinationRow::disconnectRequested, controller_, &SessionController::disconnectProvider);
+		connect(row, &DestinationRow::retryRequested, coordinator_, &Coordinator::retry);
+		connect(row, &DestinationRow::restartRequested, coordinator_, &Coordinator::restartTarget);
+		connect(row, &DestinationRow::openRequested, this, [](const QString &url) { openInBrowser(url); });
+	}
+}
+
 void StatusWindow::render()
 {
 	const SessionState state = coordinator_->state();
 	const QList<TargetView> targets = coordinator_->targets();
 	const bool locked = state != SessionState::Idle && state != SessionState::Attention;
-	for (const TargetView &view : targets)
-		rows_.at(view.id)->render(view, locked, controller_->connecting(view.id));
+	for (const TargetView &view : targets) {
+		const auto row = rows_.find(view.id);
+		if (row != rows_.end())
+			row->second->render(view, locked, controller_->connecting(view.id));
+	}
 	radioRow_->render();
 
 	const bool recovered = !coordinator_->recovered().isEmpty();
@@ -212,6 +236,15 @@ void StatusWindow::renderNotice(SessionState state)
 		noticePrimary_->setText(QStringLiteral("Cerrarla ahora"));
 		noticeSecondary_->setText(QStringLiteral("Ya la revisé"));
 		noticeSecondary_->setVisible(true);
+		notice_->setVisible(true);
+		return;
+	}
+	const AlertCenter *alerts = controller_->alerts();
+	if (alerts->silent()) {
+		noticeText_->setText(QStringLiteral("No hay audio en la pista %1 desde hace %2 s. Revisá el micrófono y el mezclador de OBS.")
+					     .arg(alerts->silentTrack())
+					     .arg(alerts->silentSeconds()));
+		noticePrimary_->setVisible(false);
 		notice_->setVisible(true);
 		return;
 	}

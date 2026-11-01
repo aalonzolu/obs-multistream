@@ -5,6 +5,7 @@
 #include "storage/journal.hpp"
 
 #include <QDateTime>
+#include <QHash>
 #include <QJsonObject>
 #include <QObject>
 #include <QTimer>
@@ -64,10 +65,11 @@ public:
 	~Coordinator() override;
 
 	void addProvider(Provider *provider);
+	bool removeProvider(const QString &id);
 	Provider *provider(const QString &id) const;
 	QStringList providerIds() const { return QStringList(order_.begin(), order_.end()); }
 
-	void start(const QString &title, const QString &description = {});
+	void start(const QString &title, const QString &description = {}, const QHash<QString, QString> &scheduledRefs = {});
 	void stop();
 	void retry(const QString &id);
 	void restartTarget(const QString &id);
@@ -87,6 +89,7 @@ public:
 
 signals:
 	void changed();
+	void providersChanged();
 
 private:
 	struct Target {
@@ -129,6 +132,7 @@ private:
 	QString message_;
 	QString title_;
 	QString description_;
+	QHash<QString, QString> scheduledRefs_;
 	QString sessionUuid_;
 	QDateTime liveSince_;
 	int generation_ = 0;

@@ -96,6 +96,8 @@ void MetaBrokerProvider::call(const QString &path, const QJsonObject &body, bool
 				error = Error::make(ErrorKind::AuthRequired, code, QStringLiteral("Necesitamos que vuelvas a autorizar Facebook."));
 			else if (!root.value(QStringLiteral("message")).toString().isEmpty() && error.kind == ErrorKind::Rejected)
 				error.message = root.value(QStringLiteral("message")).toString();
+			if (!code.isEmpty() && error.kind == ErrorKind::Rejected)
+				error.code = code;
 			done(Result<QJsonObject>::failure(error));
 			return;
 		}
@@ -264,6 +266,72 @@ void MetaBrokerProvider::preflight(Callback<Account> done)
 
 void MetaBrokerProvider::prepare(const StartIntent &intent, Callback<PreparedSession> done)
 {
+	if (intent.scheduledRef.isEmpty()) {
+		createLive(intent, done);
+		return;
+	}
+	call(QStringLiteral("/v1/meta/live/%1/resume").arg(intent.scheduledRef),
+	     {{QStringLiteral("page_token"), pageToken()},
+	      {QStringLiteral("title"), intent.title.left(capabilities().titleDisplayLimit)},
+	      {QStringLiteral("description"), intent.description}},
+	     false, [this, intent, done](Result<QJsonObject> result) {
+		     if (!result.ok()) {
+			     done(Result<PreparedSession>::failure(result.error));
+			     return;
+		     }
+		     if (!result.value->value(QStringLiteral("available")).toBool()) {
+			     createLive(intent, done);
+			     return;
+		     }
+		     PreparedSession session;
+		     session.remoteId = intent.scheduledRef;
+		     session.remoteStreamId = result.value->value(QStringLiteral("video_id")).toString();
+		     session.publicUrl = result.value->value(QStringLiteral("permalink_url")).toString();
+		     session.scheduled = true;
+		     if (!splitIngestUrl(result.value->value(QStringLiteral("secure_stream_url")).toString(), &session.server, &session.key)) {
+			     done(Result<PreparedSession>::failure(Error::make(ErrorKind::Rejected, QStringLiteral("NO_INGEST"),
+									       QStringLiteral("Facebook no devolvió la dirección de ingreso del directo programado."))));
+			     return;
+		     }
+		     goLiveRequested_.remove(session.remoteId);
+		     done(Result<PreparedSession>::success(session));
+	     });
+}
+
+void MetaBrokerProvider::schedule(const ScheduleRequest &request, Callback<ScheduledBroadcast> done)
+{
+	call(QStringLiteral("/v1/meta/live/schedule"),
+	     {{QStringLiteral("page_token"), pageToken()},
+	      {QStringLiteral("page_id"), account().destinationId},
+	      {QStringLiteral("title"), request.title.left(capabilities().titleDisplayLimit)},
+	      {QStringLiteral("description"), request.description},
+	      {QStringLiteral("start_time"), static_cast<double>(request.startsAt.toSecsSinceEpoch())}},
+	     true,
+	     [done](Result<QJsonObject> result) {
+		     if (!result.ok()) {
+			     done(Result<ScheduledBroadcast>::failure(result.error));
+			     return;
+		     }
+		     done(Result<ScheduledBroadcast>::success({result.value->value(QStringLiteral("id")).toString(),
+							     result.value->value(QStringLiteral("permalink_url")).toString()}));
+	     },
+	     QStringLiteral("schedule-%1-%2").arg(account().destinationId).arg(request.startsAt.toSecsSinceEpoch()).toUtf8());
+}
+
+void MetaBrokerProvider::cancelScheduled(const QString &ref, Callback<bool> done)
+{
+	call(QStringLiteral("/v1/meta/live/%1/cancel").arg(ref), {{QStringLiteral("page_token"), pageToken()}}, false,
+	     [done](Result<QJsonObject> result) {
+		     if (!result.ok()) {
+			     done(Result<bool>::failure(result.error));
+			     return;
+		     }
+		     done(Result<bool>::success(true));
+	     });
+}
+
+void MetaBrokerProvider::createLive(const StartIntent &intent, Callback<PreparedSession> done)
+{
 	call(QStringLiteral("/v1/meta/live"),
 	     {{QStringLiteral("page_token"), pageToken()},
 	      {QStringLiteral("page_id"), account().destinationId},
@@ -293,12 +361,20 @@ void MetaBrokerProvider::prepare(const StartIntent &intent, Callback<PreparedSes
 void MetaBrokerProvider::inspect(const PreparedSession &session, Callback<RemoteStatus> done)
 {
 	call(QStringLiteral("/v1/meta/live/%1/status").arg(session.remoteId), {{QStringLiteral("page_token"), pageToken()}}, false,
-	     [done, session](Result<QJsonObject> result) {
+	     [this, done, session](Result<QJsonObject> result) {
 		     if (!result.ok()) {
 			     done(Result<RemoteStatus>::failure(result.error));
 			     return;
 		     }
 		     const QString status = result.value->value(QStringLiteral("status")).toString();
+		     if (session.scheduled && status.startsWith(QStringLiteral("SCHEDULED")) && !goLiveRequested_.contains(session.remoteId)) {
+			     goLiveRequested_.insert(session.remoteId);
+			     call(QStringLiteral("/v1/meta/live/%1/golive").arg(session.remoteId), {{QStringLiteral("page_token"), pageToken()}}, false,
+				  [this, id = session.remoteId](Result<QJsonObject> requested) {
+					  if (!requested.ok())
+						  goLiveRequested_.remove(id);
+				  });
+		     }
 		     Verification verification = Verification::SignalSent;
 		     if (status == QStringLiteral("LIVE"))
 			     verification = Verification::LiveConfirmed;
@@ -310,6 +386,22 @@ void MetaBrokerProvider::inspect(const PreparedSession &session, Callback<Remote
 }
 
 void MetaBrokerProvider::finalize(const PreparedSession &session, Callback<RemoteStatus> done)
+{
+	if (!session.scheduled) {
+		endLive(session, done);
+		return;
+	}
+	call(QStringLiteral("/v1/meta/live/%1/status").arg(session.remoteId), {{QStringLiteral("page_token"), pageToken()}}, false,
+	     [this, session, done](Result<QJsonObject> result) {
+		     if (result.ok() && result.value->value(QStringLiteral("status")).toString().startsWith(QStringLiteral("SCHEDULED"))) {
+			     done(Result<RemoteStatus>::success({Verification::Ended, QStringLiteral("kept-scheduled"), session.publicUrl}));
+			     return;
+		     }
+		     endLive(session, done);
+	     });
+}
+
+void MetaBrokerProvider::endLive(const PreparedSession &session, Callback<RemoteStatus> done)
 {
 	const bool hide = Settings::shared().provider(id()).value(QStringLiteral("hide_after_end")).toBool(true);
 	call(QStringLiteral("/v1/meta/live/%1/end").arg(session.remoteId),

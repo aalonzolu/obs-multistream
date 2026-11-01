@@ -1,12 +1,12 @@
 import subprocess
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 import requests
 
-from harness import (CONFIG, ROOT, Failed, check, ensure_test_scene, launch_obs, preserved_config, targets, vendor,
-                     wait_for, wait_state)
+from harness import (CONFIG, ROOT, TEST_INPUT, Failed, check, ensure_test_scene, launch_obs, preserved_config, targets,
+                     vendor, wait_for, wait_state)
 
 CAPTURES = ROOT.parent.parent / "docs" / "manual" / "capturas"
 DESTINATIONS = ["facebook", "youtube", "tiktok"]
@@ -98,12 +98,27 @@ def capture(tiktok_receiver: subprocess.Popen) -> int:
     for title, description in TEMPLATES:
         vendor(client, "DevRemember", {"title": title, "description": description})
     vendor(client, "RadioConfigure", {"config": RADIO_EXAMPLE})
+    starts = (datetime.now(timezone.utc) + timedelta(hours=2)).replace(minute=0, second=0, microsecond=0)
+    vendor(client, "ScheduleCreate", {"title": "Transmisión en vivo · " + starts.astimezone().strftime("%d/%m/%Y"),
+                                      "description": TEMPLATES[2][1], "starts_at": starts.isoformat(),
+                                      "providers": "facebook,youtube"})
+    check(wait_for(lambda: vendor(client, "ScheduleList")["entries"], 10), "transmisión programada de ejemplo")
 
     print("\n1. Antes de transmitir")
     status_bar(client, "01-barra-lista")
     vendor(client, "ClickStreamButton")
     check(wait_for(lambda: modal(client) == "multistream-start", 5), "se abre la ventana Transmitir")
     snap(client, "02-ventana-transmitir", "modal")
+    vendor(client, "DismissModal")
+    wait_for(lambda: modal(client) == "", 5)
+    vendor(client, "OpenScheduleWindow", {"title": "Conferencia · {fecha}", "description": TEMPLATES[1][1]})
+    check(wait_for(lambda: modal(client) == "multistream-schedule", 5), "se abre Programar transmisión")
+    snap(client, "11-programar", "modal")
+    vendor(client, "DismissModal")
+    wait_for(lambda: modal(client) == "", 5)
+    vendor(client, "OpenAddCustom")
+    check(wait_for(lambda: modal(client) == "multistream-custom", 5), "se abre Agregar destino RTMP")
+    snap(client, "12-destino-rtmp", "modal")
     vendor(client, "DismissModal")
     wait_for(lambda: modal(client) == "", 5)
     vendor(client, "OpenRadioSettings")
@@ -129,6 +144,12 @@ def capture(tiktok_receiver: subprocess.Popen) -> int:
     geometry = vendor(client, "DevGeometry")
     snap(client, "06-boton-finalizar", "main", geometry.get("controls"))
     obs_window("00-obs-al-aire")
+    client.set_input_mute(TEST_INPUT, True)
+    check(wait_for(lambda: vendor(client, "AlertStatus")["silent"], 35), "aviso de silencio")
+    time.sleep(2)
+    status_bar(client, "13-barra-sin-audio")
+    client.set_input_mute(TEST_INPUT, False)
+    wait_for(lambda: not vendor(client, "AlertStatus")["silent"], 10)
 
     print("\n3. Se cae un destino")
     tiktok_receiver.terminate()

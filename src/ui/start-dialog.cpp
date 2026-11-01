@@ -14,6 +14,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QListWidget>
+#include <QLocale>
 #include <QPainter>
 #include <QPlainTextEdit>
 #include <QPushButton>
@@ -120,10 +121,11 @@ QLabel *mutedLabel(QWidget *parent)
 
 } // namespace
 
-StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, AccountActions actions, QWidget *parent)
+StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Scheduler *scheduler, AccountActions actions, QWidget *parent)
 	: QDialog(parent),
 	  coordinator_(coordinator),
 	  radio_(radio),
+	  scheduler_(scheduler),
 	  actions_(std::move(actions)),
 	  title_(new QLineEdit(this)),
 	  titleCount_(mutedLabel(this)),
@@ -173,10 +175,18 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Accoun
 	what->addWidget(description_, 5, 0, 1, 2);
 	what->setColumnStretch(0, 1);
 
+	useScheduled_ = new QCheckBox(this);
+	useScheduled_->setVisible(false);
+	record_ = new QCheckBox(QStringLiteral("Grabar también en este equipo"), this);
+	record_->setToolTip(QStringLiteral("Inicia la grabación de OBS junto con la transmisión y la detiene al terminar. Usa la carpeta y el formato de grabación de OBS."));
+	record_->setChecked(Settings::shared().provider(QStringLiteral("ui")).value(QStringLiteral("record_along")).toBool());
+
 	auto *right = new QVBoxLayout();
 	right->setSpacing(14);
+	right->addWidget(useScheduled_);
 	right->addLayout(what);
 	right->addWidget(buildDestinations());
+	right->addWidget(record_);
 	right->addStretch();
 
 	auto *body = new QHBoxLayout();
@@ -190,6 +200,10 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Accoun
 	profile_->setAccessibleName(QStringLiteral("Calidad"));
 	auto *cancel = new QPushButton(QStringLiteral("Cancelar"), this);
 	cancel->setAutoDefault(false);
+	auto *scheduleButton = new QPushButton(QStringLiteral("Programar…"), this);
+	scheduleButton->setAutoDefault(false);
+	scheduleButton->setToolTip(QStringLiteral("Crear el directo con fecha y hora para compartir el enlace antes"));
+	scheduleButton->setVisible(static_cast<bool>(actions_.schedule));
 	start_->setFixedSize(230, 50);
 
 	auto *footer = new QHBoxLayout();
@@ -198,6 +212,7 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Accoun
 	footer->addWidget(profile_);
 	footer->addWidget(upload_);
 	footer->addStretch();
+	footer->addWidget(scheduleButton);
 	footer->addWidget(cancel);
 	footer->addWidget(start_);
 
@@ -222,6 +237,13 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Accoun
 		refresh();
 	});
 	connect(cancel, &QPushButton::clicked, this, &QDialog::reject);
+	connect(scheduleButton, &QPushButton::clicked, this, [this] {
+		actions_.schedule(title_->text(), description_->toPlainText());
+		refreshScheduled();
+	});
+	connect(record_, &QCheckBox::toggled, this,
+		[](bool on) { Settings::shared().mergeProvider(QStringLiteral("ui"), {{QStringLiteral("record_along"), on}}); });
+	connect(useScheduled_, &QCheckBox::toggled, this, &StartDialog::applyScheduled);
 	connect(start_, &PrimaryAction::clicked, this, &StartDialog::startStreaming);
 	connect(coordinator_, &Coordinator::changed, this, &StartDialog::refreshDestinations);
 	auto *submit = new QShortcut(QKeySequence(Qt::CTRL | Qt::Key_Return), this);
@@ -231,7 +253,77 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Accoun
 	if (!templates_.isEmpty())
 		list_->setCurrentRow(0);
 	refreshDestinations();
+	refreshScheduled();
 	start_->setFocus();
+}
+
+void StartDialog::refreshScheduled()
+{
+	scheduled_ = scheduler_ ? scheduler_->dueNow() : std::nullopt;
+	useScheduled_->setVisible(scheduled_.has_value());
+	if (!scheduled_) {
+		const QSignalBlocker blocker(useScheduled_);
+		useScheduled_->setChecked(false);
+		refresh();
+		return;
+	}
+	QStringList names;
+	for (auto it = scheduled_->broadcasts.begin(); it != scheduled_->broadcasts.end(); ++it)
+		names << coordinator_->target(it.key()).name;
+	const QLocale spanish(QLocale::Spanish);
+	const QDateTime local = scheduled_->startsAt.toLocalTime();
+	const QString day = local.date() == QDate::currentDate() ? QStringLiteral("hoy") : spanish.toString(local.date(), QStringLiteral("dddd d"));
+	useScheduled_->setText(QStringLiteral("Usar la transmisión programada «%1» (%2 %3 · %4)")
+				       .arg(scheduled_->title, day, local.toString(QStringLiteral("HH:mm")), spanish.createSeparatedList(names)));
+	useScheduled_->setToolTip(QStringLiteral("Transmite en los directos ya creados, con los enlaces que compartiste."));
+	if (!useScheduled_->isChecked())
+		useScheduled_->setChecked(true);
+	else
+		applyScheduled(true);
+}
+
+void StartDialog::applyScheduled(bool use)
+{
+	if (use && scheduled_) {
+		{
+			const QSignalBlocker listBlocker(list_);
+			list_->setCurrentRow(-1);
+			list_->clearSelection();
+		}
+		const QSignalBlocker titleBlocker(title_);
+		const QSignalBlocker descriptionBlocker(description_);
+		title_->setText(scheduled_->title);
+		description_->setPlainText(scheduled_->description);
+		for (auto it = scheduled_->broadcasts.begin(); it != scheduled_->broadcasts.end(); ++it) {
+			const auto line = destinations_.find(it.key());
+			if (line != destinations_.end() && line->second.check->isEnabled())
+				line->second.check->setChecked(true);
+		}
+	}
+	refresh();
+}
+
+bool StartDialog::recordAlong() const
+{
+	return record_->isChecked();
+}
+
+QString StartDialog::scheduledId() const
+{
+	return scheduled_ && useScheduled_->isChecked() ? scheduled_->id : QString();
+}
+
+QHash<QString, QString> StartDialog::scheduledRefs() const
+{
+	QHash<QString, QString> refs;
+	if (scheduledId().isEmpty())
+		return refs;
+	for (auto it = scheduled_->broadcasts.begin(); it != scheduled_->broadcasts.end(); ++it) {
+		const auto line = destinations_.find(it.key());
+		if (line != destinations_.end() && line->second.check->isChecked())
+			refs.insert(it.key(), it->ref);
+	}
+	return refs;
 }
 
 QWidget *StartDialog::buildRecents()
@@ -314,6 +406,7 @@ QWidget *StartDialog::optionsFor(const QString &providerId, DestinationLine &lin
 	}
 	line.note = mutedLabel(box);
 	line.note->setTextFormat(Qt::PlainText);
+	layout->addSpacing(10);
 	layout->addWidget(line.note, 1);
 	line.fix = new QPushButton(box);
 	line.fix->setAutoDefault(false);
@@ -647,6 +740,8 @@ void StartDialog::refresh()
 			note = QStringLiteral("Autorizando en el navegador…");
 		else if (view.state != TargetState::Ready && line.fixKind == Fix::None)
 			note = view.message.isEmpty() ? QStringLiteral("No está listo") : view.message;
+		else if (line.check->isChecked() && !scheduledId().isEmpty() && scheduled_->broadcasts.contains(id))
+			note = QStringLiteral("Programado");
 		else if (id == QStringLiteral("tiktok") && line.check->isChecked() && rendered.size() > kTikTokLimit)
 			note = QStringLiteral("Mostrará «%1…»").arg(rendered.left(kTikTokLimit));
 		line.note->setText(note);

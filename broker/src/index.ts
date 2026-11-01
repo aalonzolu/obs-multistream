@@ -271,6 +271,94 @@ async function createLive(request: Request, env: Env): Promise<Response> {
   return json(response);
 }
 
+function absolute(permalink?: string): string {
+  return permalink ? new URL(permalink, "https://www.facebook.com").toString() : "";
+}
+
+async function scheduleLive(request: Request, env: Env): Promise<Response> {
+  const key = request.headers.get("Idempotency-Key");
+  if (!key || key.length > 128) throw new HttpError(400, "BAD_REQUEST", "Falta Idempotency-Key.");
+  const cached = await env.DB.prepare("SELECT sealed_response FROM operations WHERE idempotency_key = ?").bind(key).first<{ sealed_response: string }>();
+  if (cached) return json(await unseal(env.CACHE_ENCRYPTION_KEY, cached.sealed_response));
+
+  const payload = await body<{ page_token?: string; page_id?: string; title?: string; description?: string; start_time?: number }>(request);
+  const token = requireString(payload.page_token, "page_token");
+  const pageId = requireString(payload.page_id, "page_id");
+  const startTime = Number(payload.start_time);
+  const now = Math.floor(Date.now() / 1000);
+  if (!Number.isFinite(startTime) || startTime < now + 600 || startTime > now + 7 * 24 * 3600) {
+    throw new HttpError(400, "BAD_REQUEST", "Facebook permite programar entre 10 minutos y 7 días antes.");
+  }
+  const title = (payload.title ?? "").slice(0, 254);
+  const description = (payload.description ?? "").slice(0, 5000);
+  const graph = new Graph(env);
+  const base = { status: "SCHEDULED_UNPUBLISHED", title, ...(description ? { description } : {}) };
+  let created = await graph.call<{ id: string; secure_stream_url?: string; stream_url?: string }>(
+    "POST", `/${encodeURIComponent(pageId)}/live_videos`, token, { ...base, event_params: String(startTime) });
+  if (!created.ok) {
+    created = await graph.call<{ id: string; secure_stream_url?: string; stream_url?: string }>(
+      "POST", `/${encodeURIComponent(pageId)}/live_videos`, token, { ...base, planned_start_time: String(startTime) });
+  }
+  if (!created.ok) {
+    console.log(JSON.stringify({ event: "schedule_live_failed", code: created.error?.code, subcode: created.error?.subcode, message: created.error?.message }));
+    if (created.error?.code === 3 || created.error?.code === 10 || created.error?.code === 200) {
+      throw new HttpError(400, "UNSUPPORTED", "Meta no habilitó la programación de directos para esta app (requiere la revisión de la app en Meta). Transmitir al momento sigue funcionando.");
+    }
+    throw graphFailure(created.error, true);
+  }
+  const details = await graph.call<{ permalink_url?: string }>("GET", `/${created.data.id}`, token, { fields: "permalink_url" });
+  const response = { id: created.data.id, permalink_url: absolute(details.data.permalink_url) };
+  const stored = Date.now();
+  await env.DB.prepare(
+    "INSERT OR REPLACE INTO operations (idempotency_key, live_video_id, sealed_response, created_at, expires_at) VALUES (?, ?, ?, ?, ?)",
+  )
+    .bind(key, response.id, await seal(env.CACHE_ENCRYPTION_KEY, response), stored, stored + OPERATION_TTL_MS)
+    .run();
+  return json(response);
+}
+
+async function resumeLive(id: string, request: Request, env: Env): Promise<Response> {
+  const payload = await body<{ page_token?: string; title?: string; description?: string }>(request);
+  const token = requireString(payload.page_token, "page_token");
+  const graph = new Graph(env);
+  const current = await graph.call<{ status?: string; secure_stream_url?: string; stream_url?: string; permalink_url?: string; video?: { id: string } }>(
+    "GET", `/${encodeURIComponent(id)}`, token, { fields: "status,secure_stream_url,stream_url,permalink_url,video" });
+  if (!current.ok) throw graphFailure(current.error);
+  const status = current.data.status ?? "";
+  if (!["SCHEDULED_UNPUBLISHED", "SCHEDULED_LIVE", "UNPUBLISHED"].includes(status)) {
+    return json({ available: false, status });
+  }
+  const update: Record<string, string> = {};
+  if (payload.title) update.title = payload.title.slice(0, 254);
+  if (payload.description !== undefined) update.description = payload.description.slice(0, 5000);
+  if (Object.keys(update).length) await graph.call("POST", `/${encodeURIComponent(id)}`, token, update);
+  return json({
+    available: true,
+    status,
+    id,
+    secure_stream_url: current.data.secure_stream_url ?? current.data.stream_url ?? "",
+    permalink_url: absolute(current.data.permalink_url),
+    video_id: current.data.video?.id ?? "",
+  });
+}
+
+async function goLive(id: string, request: Request, env: Env): Promise<Response> {
+  const token = requireString((await body<{ page_token?: string }>(request)).page_token, "page_token");
+  const result = await new Graph(env).call<{ id?: string }>("POST", `/${encodeURIComponent(id)}`, token, { status: "LIVE_NOW" });
+  if (!result.ok) throw graphFailure(result.error);
+  return json({ requested: true });
+}
+
+async function cancelLive(id: string, request: Request, env: Env): Promise<Response> {
+  const token = requireString((await body<{ page_token?: string }>(request)).page_token, "page_token");
+  const graph = new Graph(env);
+  const removed = await graph.call<{ success?: boolean }>("DELETE", `/${encodeURIComponent(id)}`, token, {});
+  if (removed.ok) return json({ cancelled: true });
+  const marked = await graph.call<{ id?: string }>("POST", `/${encodeURIComponent(id)}`, token, { status: "SCHEDULED_CANCELED" });
+  if (!marked.ok) throw graphFailure(marked.error);
+  return json({ cancelled: true });
+}
+
 async function liveStatus(id: string, request: Request, env: Env): Promise<Response> {
   const token = requireString((await body<{ page_token?: string }>(request)).page_token, "page_token");
   const result = await new Graph(env).call<{ status?: string; permalink_url?: string }>("GET", `/${encodeURIComponent(id)}`, token, {
@@ -333,6 +421,7 @@ async function route(request: Request, env: Env): Promise<Response> {
   if (path === "/v1/auth/meta/transactions") return createTransaction(request, env);
   if (path === "/v1/meta/pages/check") return checkPage(request, env);
   if (path === "/v1/meta/live") return createLive(request, env);
+  if (path === "/v1/meta/live/schedule") return scheduleLive(request, env);
 
   const transaction = path.match(/^\/v1\/auth\/meta\/transactions\/([A-Za-z0-9_-]+)\/(status|result|select|ack)$/);
   if (transaction) {
@@ -343,10 +432,14 @@ async function route(request: Request, env: Env): Promise<Response> {
     return acknowledge(id, request, env);
   }
 
-  const live = path.match(/^\/v1\/meta\/live\/([0-9]+)\/(status|end)$/);
+  const live = path.match(/^\/v1\/meta\/live\/([0-9]+)\/(status|end|resume|golive|cancel)$/);
   if (live) {
     const [, id, action] = live;
-    return action === "status" ? liveStatus(id, request, env) : endLive(id, request, env);
+    if (action === "status") return liveStatus(id, request, env);
+    if (action === "resume") return resumeLive(id, request, env);
+    if (action === "golive") return goLive(id, request, env);
+    if (action === "cancel") return cancelLive(id, request, env);
+    return endLive(id, request, env);
   }
   throw new HttpError(404, "NOT_FOUND", "Ruta desconocida.");
 }

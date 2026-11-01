@@ -95,15 +95,18 @@ void DestinationRow::rebuildMenu(const TargetView &view, bool locked)
 		menu->addAction(QStringLiteral("Crear un directo nuevo aquí"), this, [this] { emit restartRequested(providerId_); });
 	menu->addAction(QStringLiteral("Copiar detalles técnicos"), this, [this] { QApplication::clipboard()->setText(technicalDetails(last_)); });
 	menu->addSeparator();
-	QAction *change = menu->addAction(view.account.connected() ? QStringLiteral("Cambiar cuenta…") : QStringLiteral("Conectar…"), this,
-					  [this] { emit connectRequested(providerId_); });
+	const bool custom = providerId_.startsWith(QStringLiteral("custom-"));
+	const QString changeLabel = custom ? QStringLiteral("Editar destino…")
+				  : view.account.connected() ? QStringLiteral("Cambiar cuenta…") : QStringLiteral("Conectar…");
+	QAction *change = menu->addAction(changeLabel, this, [this] { emit connectRequested(providerId_); });
 	change->setEnabled(!locked);
 	if (providerId_ == QStringLiteral("facebook")) {
 		QAction *page = menu->addAction(QStringLiteral("Elegir página…"), this, [this] { emit chooseDestinationRequested(providerId_); });
 		page->setEnabled(!locked && view.account.connected());
 	}
-	QAction *disconnect = menu->addAction(QStringLiteral("Desconectar"), this, [this] { emit disconnectRequested(providerId_); });
-	disconnect->setEnabled(!locked && view.account.connected());
+	QAction *disconnect = menu->addAction(custom ? QStringLiteral("Quitar destino") : QStringLiteral("Desconectar"), this,
+					      [this] { emit disconnectRequested(providerId_); });
+	disconnect->setEnabled(!locked && (custom || view.account.connected()));
 }
 
 void DestinationRow::render(const TargetView &view, bool locked, bool connecting)
@@ -149,8 +152,8 @@ void DestinationRow::render(const TargetView &view, bool locked, bool connecting
 	else
 		currentAction_ = Action::None;
 
-	static const QMap<Action, QString> labels = {
-		{Action::Connect, QStringLiteral("Conectar")},
+	const QMap<Action, QString> labels = {
+		{Action::Connect, providerId_.startsWith(QStringLiteral("custom-")) ? QStringLiteral("Completar") : QStringLiteral("Conectar")},
 		{Action::Reconnect, QStringLiteral("Reconectar")},
 		{Action::ChooseDestination, QStringLiteral("Elegir página")},
 		{Action::Retry, QStringLiteral("Reintentar")},

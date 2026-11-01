@@ -1,6 +1,7 @@
 #include "ui/status-strip.hpp"
 
 #include "providers/provider.hpp"
+#include "ui/alert-center.hpp"
 #include "ui/destination-badge.hpp"
 #include "ui/presentation.hpp"
 #include "ui/session-controller.hpp"
@@ -95,6 +96,8 @@ StatusStrip::StatusStrip(SessionController *controller, QWidget *parent)
 	  controller_(controller),
 	  coordinator_(controller->coordinator()),
 	  session_(new StatusPill(StatusPill::Size::Compact, this)),
+	  silence_(new StatusPill(StatusPill::Size::Compact, this)),
+	  badgeLayout_(new QHBoxLayout()),
 	  radio_(new DestinationBadge(QStringLiteral("radio"), this)),
 	  settings_(new QToolButton(this))
 {
@@ -110,16 +113,18 @@ StatusStrip::StatusStrip(SessionController *controller, QWidget *parent)
 	layout->setContentsMargins(4, 0, 4, 0);
 	layout->setSpacing(2);
 	layout->addWidget(session_);
+	layout->addWidget(silence_);
 	layout->addSpacing(4);
-	for (const QString &id : coordinator_->providerIds()) {
-		auto *badge = new DestinationBadge(id, this);
-		badges_[id] = badge;
-		layout->addWidget(badge);
-		badge->setContextMenuPolicy(Qt::CustomContextMenu);
-		connect(badge, &DestinationBadge::clicked, controller_, &SessionController::openStatusWindow);
-		connect(badge, &DestinationBadge::customContextMenuRequested, this, [this, badge] { openDestinationMenu(badge); });
-	}
+	badgeLayout_->setSpacing(2);
+	badgeLayout_->setContentsMargins(0, 0, 0, 0);
+	layout->addLayout(badgeLayout_);
+	rebuildBadges();
 	layout->addWidget(radio_);
+	silence_->setClickable(true);
+	silence_->setVisible(false);
+	connect(silence_, &StatusPill::clicked, controller_, &SessionController::openStatusWindow);
+	connect(controller_->alerts(), &AlertCenter::changed, this, &StatusStrip::render);
+	connect(coordinator_, &Coordinator::providersChanged, this, &StatusStrip::rebuildBadges);
 	radio_->setContextMenuPolicy(Qt::CustomContextMenu);
 	connect(radio_, &DestinationBadge::clicked, controller_, &SessionController::openStatusWindow);
 	connect(radio_, &DestinationBadge::customContextMenuRequested, this, &StatusStrip::openRadioMenu);
@@ -133,6 +138,22 @@ StatusStrip::StatusStrip(SessionController *controller, QWidget *parent)
 	connect(controller_, &SessionController::connectionsChanged, this, &StatusStrip::render);
 	connect(&ticker_, &QTimer::timeout, this, &StatusStrip::render);
 	ticker_.setInterval(1000);
+	render();
+}
+
+void StatusStrip::rebuildBadges()
+{
+	for (auto &[id, badge] : badges_)
+		badge->deleteLater();
+	badges_.clear();
+	for (const QString &id : coordinator_->providerIds()) {
+		auto *badge = new DestinationBadge(id, this);
+		badges_[id] = badge;
+		badgeLayout_->addWidget(badge);
+		badge->setContextMenuPolicy(Qt::CustomContextMenu);
+		connect(badge, &DestinationBadge::clicked, controller_, &SessionController::openStatusWindow);
+		connect(badge, &DestinationBadge::customContextMenuRequested, this, [this, badge] { openDestinationMenu(badge); });
+	}
 	render();
 }
 
@@ -156,8 +177,18 @@ void StatusStrip::render()
 	else if (!timed)
 		ticker_.stop();
 
+	const AlertCenter *alerts = controller_->alerts();
+	silence_->setVisible(alerts->silent());
+	if (alerts->silent()) {
+		silence_->setStatus(Tone::Attention, QStringLiteral("Sin audio · %1 s").arg(alerts->silentSeconds()));
+		silence_->setToolTip(QStringLiteral("No hay audio en la pista %1. Revisá el micrófono y el mezclador de OBS.").arg(alerts->silentTrack()));
+	}
+
 	for (const TargetView &view : targets) {
-		DestinationBadge *badge = badges_.at(view.id);
+		const auto found = badges_.find(view.id);
+		if (found == badges_.end())
+			continue;
+		DestinationBadge *badge = found->second;
 		const Presentation presentation = presentationFor(view, controller_->connecting(view.id));
 		badge->present(presentation.tone, presentation.label, presentation.tone == Tone::Attention,
 			       view.state == TargetState::LiveConfirmed);
@@ -234,7 +265,9 @@ void StatusStrip::openDestinationMenu(DestinationBadge *badge)
 	if (connecting) {
 		actions.add(QStringLiteral("Cancelar la autorización"), [this, id] { controller_->connectProvider(id); });
 	} else if (!isLocked) {
-		const QString connectLabel = view.state == TargetState::AuthRequired ? QStringLiteral("Reconectar…")
+		const bool custom = id.startsWith(QStringLiteral("custom-"));
+		const QString connectLabel = custom ? QStringLiteral("Editar destino…")
+					     : view.state == TargetState::AuthRequired ? QStringLiteral("Reconectar…")
 					     : view.account.connected()               ? QStringLiteral("Cambiar cuenta…")
 										      : QStringLiteral("Conectar…");
 		actions.add(connectLabel, [this, id] { controller_->connectProvider(id); });
@@ -244,9 +277,10 @@ void StatusStrip::openDestinationMenu(DestinationBadge *badge)
 	}
 	if (view.account.connected())
 		actions.add(QStringLiteral("Copiar detalles técnicos"), [view] { QApplication::clipboard()->setText(technicalDetails(view)); });
-	if (!isLocked && view.account.connected() && !connecting) {
+	const bool removable = id.startsWith(QStringLiteral("custom-"));
+	if (!isLocked && (view.account.connected() || removable) && !connecting) {
 		menu.addSeparator();
-		actions.add(QStringLiteral("Desconectar"), [this, id] { controller_->disconnectProvider(id); });
+		actions.add(removable ? QStringLiteral("Quitar destino") : QStringLiteral("Desconectar"), [this, id] { controller_->disconnectProvider(id); });
 	}
 
 	QAction *chosen = popupAbove(menu, badge);
@@ -265,6 +299,16 @@ void StatusStrip::openSettingsMenu()
 	actions.add(controller_->radio()->active() ? QStringLiteral("Detener la radio") : QStringLiteral("Iniciar la radio"),
 		    [this] { controller_->toggleRadio(); }, controller_->radio()->config().configured());
 	actions.add(QStringLiteral("Configurar radio…"), [this] { controller_->openRadioSettings(); });
+	actions.add(QStringLiteral("Programar transmisión…"), [this] { controller_->openScheduleWindow(); });
+	actions.add(QStringLiteral("Agregar destino RTMP…"), [this] { controller_->addCustomDestination(); });
+	menu.addSeparator();
+	AlertCenter *alerts = controller_->alerts();
+	QAction *sound = actions.add(QStringLiteral("Avisos con sonido"), {});
+	sound->setCheckable(true);
+	sound->setChecked(alerts->soundEnabled());
+	QAction *silenceWatch = actions.add(QStringLiteral("Avisar si no hay audio"), {});
+	silenceWatch->setCheckable(true);
+	silenceWatch->setChecked(alerts->silenceWatchEnabled());
 	menu.addSeparator();
 	QAction *replace = actions.add(QStringLiteral("Iniciar desde el botón de OBS"), {});
 	replace->setCheckable(true);
@@ -274,6 +318,10 @@ void StatusStrip::openSettingsMenu()
 	QAction *chosen = popupAbove(menu, settings_);
 	if (chosen == replace)
 		controller_->setReplacesStreamButton(replace->isChecked());
+	else if (chosen == sound)
+		alerts->setSoundEnabled(sound->isChecked());
+	else if (chosen == silenceWatch)
+		alerts->setSilenceWatchEnabled(silenceWatch->isChecked());
 	else
 		actions.run(chosen);
 }

@@ -50,18 +50,18 @@ void LocalTestProvider::preflight(Callback<Account> done)
 	});
 }
 
-void LocalTestProvider::prepare(const StartIntent &, Callback<PreparedSession> done)
+void LocalTestProvider::prepare(const StartIntent &intent, Callback<PreparedSession> done)
 {
-	later([this, done] {
+	later([this, done, ref = intent.scheduledRef] {
 		const Error error = failureFor(QStringLiteral("prepare"));
 		if (!error.ok()) {
 			done(Result<PreparedSession>::failure(error));
 			return;
 		}
-		const QString remoteId = QStringLiteral("%1-%2").arg(id_).arg(++counter_);
+		const QString remoteId = ref.isEmpty() ? QStringLiteral("%1-%2").arg(id_).arg(++counter_) : ref;
 		const int port = behavior_.value(QStringLiteral("port")).toInt(1935);
 		done(Result<PreparedSession>::success({remoteId, {}, QStringLiteral("rtmp://127.0.0.1:%1/live").arg(port), id_,
-						       QStringLiteral("http://127.0.0.1:9997/v3/paths/get/live/") + id_}));
+						       QStringLiteral("http://127.0.0.1:9997/v3/paths/get/live/") + id_, !ref.isEmpty()}));
 	});
 }
 
@@ -80,6 +80,20 @@ void LocalTestProvider::finalize(const PreparedSession &session, Callback<Remote
 		const Error error = failureFor(QStringLiteral("finalize"));
 		done(error.ok() ? Result<RemoteStatus>::success({Verification::Ended, {}, url}) : Result<RemoteStatus>::failure(error));
 	});
+}
+
+void LocalTestProvider::schedule(const ScheduleRequest &, Callback<ScheduledBroadcast> done)
+{
+	later([this, done] {
+		const QString ref = QStringLiteral("%1-programado-%2").arg(id_).arg(++scheduledCounter_);
+		done(Result<ScheduledBroadcast>::success({ref, QStringLiteral("http://127.0.0.1:9997/v3/paths/get/live/") + id_}));
+	});
+}
+
+void LocalTestProvider::cancelScheduled(const QString &ref, Callback<bool> done)
+{
+	cancelled_ << ref;
+	done(Result<bool>::success(true));
 }
 
 } // namespace multistream

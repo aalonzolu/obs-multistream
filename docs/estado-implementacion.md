@@ -13,6 +13,7 @@
 | YouTube | En vivo confirmado por API a los ~20 s; cierre con `complete`. |
 | Facebook (página) | En vivo confirmado por API a los ~20 s; al finalizar, el video puede quedar con `privacy: SELF`. |
 | Tres destinos a la vez | 2 min, un solo codificador, 0 frames descartados, cierre confirmado en los tres. |
+| Programar en YouTube | Directo privado creado con fecha, usado al transmitir (en vivo confirmado), cerrado al finalizar; otro programado se canceló y se borró. |
 | Radio AzuraCast | MP3 96 kbps y AAC 256 kbps por PUT; la API de AzuraCast marca la entrada en vivo mientras dura y la libera al detener. |
 
 ## Pruebas automatizadas (`tests/e2e`)
@@ -25,6 +26,7 @@ Manejan OBS por obs-websocket (peticiones del vendor `obs-multistream`) contra r
 - `test_reconnect.py`: corte breve con reconexión en el mismo directo; agotados los reintentos, «Reintentar» o «Nuevo directo» solo en ese destino; directo cerrado del lado remoto.
 - `test_ui.py`: «Iniciar transmisión» abre la ventana de Multistream, al aire muestra «Finalizar transmisión», pide confirmación y la retira si la sesión termina por otra vía.
 - `test_radio.py`: los cinco formatos llegan con el códec y el Content-Type correctos; cambio automático a SOURCE si el servidor no acepta PUT; contraseña rechazada sin reintentos; reconexión tras un corte; radio independiente del video.
+- `test_features.py`: destino RTMP propio (alta, transmisión con su clave y baja), grabación junto con la transmisión, aviso de silencio y de caída, programación anticipada (crear, usar los directos programados y cancelar).
 - `capture_manual.py`: capturas del manual en modo demostración (destinos locales con nombres de ejemplo); respalda y restaura la configuración real.
 
 ## Interfaz
@@ -45,6 +47,8 @@ Manejan OBS por obs-websocket (peticiones del vendor `obs-multistream`) contra r
 | YouTube | `enableAutoStart=true`, `enableAutoStop=false` | La confirmación se hace consultando `lifeCycleStatus`. |
 | Detener salidas RTMP | Fuera del hilo de la interfaz | `obs_output_stop` puede quedarse esperando el hilo de conexión de libobs. |
 | Radio | Salida propia con libavcodec/libavformat de OBS sobre el protocolo `http` | La salida FFmpeg de OBS escribe en el log las opciones (contraseña incluida) y el protocolo `icecast` de FFmpeg rechaza el montaje `/`, que usan AzuraCast y Liquidsoap. |
+| Programar | El directo se crea con fecha y se reutiliza al transmitir; si nunca salió al aire, finalizar no lo borra | Los enlaces ya se compartieron; un intento fallido no debe romperlos. |
+| Silencio | Callback de audio de la pista a 16 kHz, umbral −50 dBFS durante 20 s | Detecta micrófono silenciado o pista equivocada sin cargar el audio de la transmisión. |
 | Radio: audio | `obs_add_raw_audio_callback` de la pista elegida, convertido por libobs al formato del códec | Sin video ni remuestreo propio; la radio no depende de la sesión de video. |
 
 ## Hallazgos operativos
@@ -52,6 +56,7 @@ Manejan OBS por obs-websocket (peticiones del vendor `obs-multistream`) contra r
 - TikTok tarda entre 20 y 80 s en mostrar el LIVE; Multistream no lo marca como confirmado.
 - OBS 32 marca los cierres forzados con archivos en `obs-studio/.sentinel/` y ofrece modo seguro al volver a abrir; en modo seguro no carga plugins.
 - AzuraCast/Liquidsoap acepta PUT con `Expect: 100-continue`; si un servidor responde 400/405, el plugin pasa a SOURCE y lo recuerda.
+- Meta responde «(#3) Application does not have the capability…» al programar directos si la app no tiene acceso avanzado; transmitir al momento funciona con el acceso estándar.
 - FFmpeg reintenta una vez por su cuenta ante un 401; Multistream no vuelve a intentar con una contraseña rechazada.
 
 ## Desplegar tus propias credenciales

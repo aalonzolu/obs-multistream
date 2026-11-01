@@ -35,10 +35,15 @@ StreamTemplate fromJson(const QJsonObject &o)
 
 QString renderTemplateText(const QString &text)
 {
-	const QDateTime now = QDateTime::currentDateTime();
+	return renderTemplateText(text, QDateTime::currentDateTime());
+}
+
+QString renderTemplateText(const QString &text, const QDateTime &when)
+{
+	const QDateTime local = when.toLocalTime();
 	QString rendered = text;
-	rendered.replace(QStringLiteral("{fecha}"), now.toString(QStringLiteral("dd/MM/yyyy")));
-	rendered.replace(QStringLiteral("{hora}"), now.toString(QStringLiteral("HH:mm")));
+	rendered.replace(QStringLiteral("{fecha}"), local.toString(QStringLiteral("dd/MM/yyyy")));
+	rendered.replace(QStringLiteral("{hora}"), local.toString(QStringLiteral("HH:mm")));
 	return rendered.trimmed();
 }
 
@@ -107,6 +112,17 @@ void Settings::setReconnect(int retries, int delaySeconds)
 {
 	root_.insert(QStringLiteral("reconnect_retries"), retries);
 	root_.insert(QStringLiteral("reconnect_delay_seconds"), delaySeconds);
+	save();
+}
+
+QJsonArray Settings::list(const QString &key) const
+{
+	return root_.value(key).toArray();
+}
+
+void Settings::setList(const QString &key, const QJsonArray &values)
+{
+	root_.insert(key, values);
 	save();
 }
 

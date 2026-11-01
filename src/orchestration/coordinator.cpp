@@ -7,6 +7,8 @@
 
 #include <QJsonArray>
 
+#include <algorithm>
+
 namespace multistream {
 
 namespace {
@@ -127,6 +129,19 @@ void Coordinator::addProvider(Provider *provider)
 		emit changed();
 	});
 	refreshIdleStates();
+	emit providersChanged();
+}
+
+bool Coordinator::removeProvider(const QString &id)
+{
+	if (streaming() || targets_.find(id) == targets_.end())
+		return false;
+	disconnect(targets_.at(id).provider, nullptr, this, nullptr);
+	targets_.erase(id);
+	order_.erase(std::remove(order_.begin(), order_.end(), id), order_.end());
+	emit providersChanged();
+	emit changed();
+	return true;
 }
 
 Provider *Coordinator::provider(const QString &id) const
@@ -204,11 +219,12 @@ void Coordinator::persist(const QString &id)
 		entry.remoteId = target.session->remoteId;
 		entry.remoteStreamId = target.session->remoteStreamId;
 		entry.publicUrl = target.session->publicUrl;
+		entry.scheduled = target.session->scheduled;
 	}
 	Journal::shared().updateTarget(sessionUuid_, entry);
 }
 
-void Coordinator::start(const QString &title, const QString &description)
+void Coordinator::start(const QString &title, const QString &description, const QHash<QString, QString> &scheduledRefs)
 {
 	if (state_ != SessionState::Idle && state_ != SessionState::Attention)
 		return;
@@ -243,6 +259,7 @@ void Coordinator::start(const QString &title, const QString &description)
 	const int generation = ++generation_;
 	title_ = title.trimmed();
 	description_ = description.trimmed();
+	scheduledRefs_ = scheduledRefs;
 	sessionUuid_.clear();
 	outputsStopped_ = false;
 	for (const QString &id : selected) {
@@ -338,8 +355,8 @@ void Coordinator::afterPreflight(int generation)
 	});
 	phaseTimer_.start(kPrepareTimeoutMs);
 
-	const StartIntent intent{sessionUuid_, title_, description_};
 	for (const QString &id : sessionTargets()) {
+		const StartIntent intent{sessionUuid_, title_, description_, scheduledRefs_.value(id)};
 		at(id).provider->prepare(intent, [this, generation, id](Result<PreparedSession> result) {
 			Target &target = at(id);
 			const bool current = generation == generation_ && state_ == SessionState::Preparing &&
@@ -764,7 +781,7 @@ void Coordinator::finalizeRecovered()
 		if (!owner || entry.remoteId.isEmpty() || entry.state == QStringLiteral("FINISHED"))
 			continue;
 		++*remaining;
-		owner->finalize({entry.remoteId, entry.remoteStreamId, {}, {}, entry.publicUrl},
+		owner->finalize({entry.remoteId, entry.remoteStreamId, {}, {}, entry.publicUrl, entry.scheduled},
 				[this, session, entry, remaining, failures, owner](Result<RemoteStatus> result) {
 					JournalTarget updated = entry;
 					updated.state = result.ok() ? QStringLiteral("FINISHED") : QStringLiteral("CLOSE_PENDING");

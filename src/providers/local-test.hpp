@@ -26,6 +26,12 @@ public:
 	void inspect(const PreparedSession &session, Callback<RemoteStatus> done) override;
 	void finalize(const PreparedSession &session, Callback<RemoteStatus> done) override;
 
+	bool supportsScheduling() const override { return schedulable_; }
+	void setSchedulable(bool schedulable) { schedulable_ = schedulable; }
+	void schedule(const ScheduleRequest &request, Callback<ScheduledBroadcast> done) override;
+	void cancelScheduled(const QString &ref, Callback<bool> done) override;
+	QStringList cancelledRefs() const { return cancelled_; }
+
 	void setIdentity(const QString &identity) { identity_ = identity; }
 	void setBehavior(const QJsonObject &behavior) { behavior_ = behavior; }
 	int finalizeCalls() const { return finalizeCalls_; }
@@ -40,6 +46,9 @@ private:
 	QJsonObject behavior_;
 	int counter_ = 0;
 	int finalizeCalls_ = 0;
+	int scheduledCounter_ = 0;
+	bool schedulable_ = true;
+	QStringList cancelled_;
 };
 
 } // namespace multistream

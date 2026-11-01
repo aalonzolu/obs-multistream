@@ -332,34 +332,139 @@ void YouTubeProvider::preflight(Callback<Account> done)
 
 void YouTubeProvider::prepare(const StartIntent &intent, Callback<PreparedSession> done)
 {
+	if (!intent.scheduledRef.isEmpty()) {
+		resumeScheduled(intent, done);
+		return;
+	}
+	createSession(intent.title, intent.description, QDateTime::currentDateTimeUtc(), intent.sessionUuid.left(8), done);
+}
+
+void YouTubeProvider::schedule(const ScheduleRequest &request, Callback<ScheduledBroadcast> done)
+{
+	createSession(request.title, request.description, request.startsAt.toUTC(),
+		      QStringLiteral("programada %1").arg(request.startsAt.toString(QStringLiteral("yyyyMMdd-HHmm"))),
+		      [done](Result<PreparedSession> session) {
+			      if (!session.ok()) {
+				      done(Result<ScheduledBroadcast>::failure(session.error));
+				      return;
+			      }
+			      done(Result<ScheduledBroadcast>::success(
+				      {session.value->remoteId + QLatin1Char('|') + session.value->remoteStreamId, session.value->publicUrl}));
+		      });
+}
+
+void YouTubeProvider::cancelScheduled(const QString &ref, Callback<bool> done)
+{
+	const QStringList parts = ref.split(QLatin1Char('|'));
+	deleteResource(QStringLiteral("liveBroadcasts"), parts.value(0));
+	deleteResource(QStringLiteral("liveStreams"), parts.value(1));
+	done(Result<bool>::success(true));
+}
+
+void YouTubeProvider::resumeScheduled(const StartIntent &intent, Callback<PreparedSession> done)
+{
+	const QStringList parts = intent.scheduledRef.split(QLatin1Char('|'));
+	const QString broadcastId = parts.value(0);
+	const QString streamId = parts.value(1);
+	const auto startFresh = [this, intent, done] {
+		createSession(intent.title, intent.description, QDateTime::currentDateTimeUtc(), intent.sessionUuid.left(8), done);
+	};
+	api(apiRequest(QStringLiteral("/liveBroadcasts"), {{QStringLiteral("part"), QStringLiteral("snippet,status")}, {QStringLiteral("id"), broadcastId}}),
+	    false, [this, intent, broadcastId, streamId, startFresh, done](Result<QJsonObject> found) {
+		    if (!found.ok()) {
+			    done(Result<PreparedSession>::failure(found.error));
+			    return;
+		    }
+		    const QJsonArray items = found.value->value(QStringLiteral("items")).toArray();
+		    const QString lifecycle =
+			    items.isEmpty() ? QString() : items.first().toObject().value(QStringLiteral("status")).toObject().value(QStringLiteral("lifeCycleStatus")).toString();
+		    if (lifecycle != QStringLiteral("created") && lifecycle != QStringLiteral("ready")) {
+			    startFresh();
+			    return;
+		    }
+		    const QJsonObject snippet = items.first().toObject().value(QStringLiteral("snippet")).toObject();
+		    updateSnippet(broadcastId, snippet, intent, [this, broadcastId, streamId, done](Result<QJsonObject>) {
+			    api(apiRequest(QStringLiteral("/liveStreams"), {{QStringLiteral("part"), QStringLiteral("cdn")}, {QStringLiteral("id"), streamId}}),
+				false, [broadcastId, streamId, done](Result<QJsonObject> stream) {
+					if (!stream.ok()) {
+						done(Result<PreparedSession>::failure(stream.error));
+						return;
+					}
+					const QJsonArray streams = stream.value->value(QStringLiteral("items")).toArray();
+					const QJsonObject ingestion = streams.isEmpty() ? QJsonObject()
+						: streams.first().toObject().value(QStringLiteral("cdn")).toObject().value(QStringLiteral("ingestionInfo")).toObject();
+					PreparedSession session;
+					session.remoteId = broadcastId;
+					session.remoteStreamId = streamId;
+					session.server = ingestion.value(QStringLiteral("rtmpsIngestionAddress")).toString();
+					if (session.server.isEmpty())
+						session.server = ingestion.value(QStringLiteral("ingestionAddress")).toString();
+					session.key = ingestion.value(QStringLiteral("streamName")).toString();
+					session.publicUrl = QStringLiteral("https://www.youtube.com/watch?v=%1").arg(broadcastId);
+					session.scheduled = true;
+					if (session.server.isEmpty() || session.key.isEmpty()) {
+						done(Result<PreparedSession>::failure(Error::make(ErrorKind::Rejected, QStringLiteral("NO_INGEST"),
+												  QStringLiteral("YouTube no devolvió la dirección de ingreso del directo programado."))));
+						return;
+					}
+					done(Result<PreparedSession>::success(session));
+				});
+		    });
+	    });
+}
+
+void YouTubeProvider::updateSnippet(const QString &broadcastId, const QJsonObject &snippet, const StartIntent &intent,
+				    Callback<QJsonObject> done)
+{
+	const QString title = youtubeTitle(intent.title);
+	const QString description = youtubeDescription(intent.description);
+	if (snippet.value(QStringLiteral("title")).toString() == title && snippet.value(QStringLiteral("description")).toString() == description) {
+		done(Result<QJsonObject>::success(snippet));
+		return;
+	}
+	HttpRequest request = apiRequest(QStringLiteral("/liveBroadcasts"), {{QStringLiteral("part"), QStringLiteral("snippet")}});
+	request.method = "PUT";
+	request.json(QJsonDocument(QJsonObject{
+		{QStringLiteral("id"), broadcastId},
+		{QStringLiteral("snippet"), QJsonObject{{QStringLiteral("title"), title},
+							{QStringLiteral("description"), description},
+							{QStringLiteral("scheduledStartTime"), snippet.value(QStringLiteral("scheduledStartTime"))}}},
+	}));
+	api(request, false, done);
+}
+
+void YouTubeProvider::createSession(const QString &title, const QString &description, const QDateTime &startsAt, const QString &label,
+				    Callback<PreparedSession> done)
+{
 	HttpRequest request = apiRequest(QStringLiteral("/liveStreams"), {{QStringLiteral("part"), QStringLiteral("snippet,cdn,contentDetails")}});
 	request.method = "POST";
 	request.json(QJsonDocument(QJsonObject{
-		{QStringLiteral("snippet"), QJsonObject{{QStringLiteral("title"), QStringLiteral("Multistream %1").arg(intent.sessionUuid.left(8))}}},
+		{QStringLiteral("snippet"), QJsonObject{{QStringLiteral("title"), QStringLiteral("Multistream %1").arg(label)}}},
 		{QStringLiteral("cdn"), QJsonObject{{QStringLiteral("ingestionType"), QStringLiteral("rtmp")},
 						    {QStringLiteral("frameRate"), QStringLiteral("variable")},
 						    {QStringLiteral("resolution"), QStringLiteral("variable")}}},
 		{QStringLiteral("contentDetails"), QJsonObject{{QStringLiteral("isReusable"), false}}},
 	}));
-	api(request, true, [this, intent, done](Result<QJsonObject> stream) {
+	api(request, true, [this, title, description, startsAt, done](Result<QJsonObject> stream) {
 		if (!stream.ok()) {
 			done(Result<PreparedSession>::failure(stream.error));
 			return;
 		}
-		createBroadcast(intent, *stream.value, done);
+		createBroadcast(title, description, startsAt, *stream.value, done);
 	});
 }
 
-void YouTubeProvider::createBroadcast(const StartIntent &intent, const QJsonObject &stream, Callback<PreparedSession> done)
+void YouTubeProvider::createBroadcast(const QString &title, const QString &description, const QDateTime &startsAt,
+				      const QJsonObject &stream, Callback<PreparedSession> done)
 {
 	const QJsonObject settings = Settings::shared().provider(id());
 	HttpRequest request = apiRequest(QStringLiteral("/liveBroadcasts"), {{QStringLiteral("part"), QStringLiteral("snippet,status,contentDetails")}});
 	request.method = "POST";
 	request.json(QJsonDocument(QJsonObject{
 		{QStringLiteral("snippet"),
-		 QJsonObject{{QStringLiteral("title"), youtubeTitle(intent.title)},
-			     {QStringLiteral("description"), youtubeDescription(intent.description)},
-			     {QStringLiteral("scheduledStartTime"), QDateTime::currentDateTimeUtc().toString(Qt::ISODate)}}},
+		 QJsonObject{{QStringLiteral("title"), youtubeTitle(title)},
+			     {QStringLiteral("description"), youtubeDescription(description)},
+			     {QStringLiteral("scheduledStartTime"), startsAt.toUTC().toString(Qt::ISODate)}}},
 		{QStringLiteral("status"),
 		 QJsonObject{{QStringLiteral("privacyStatus"), settings.value(QStringLiteral("privacy")).toString(QStringLiteral("public"))},
 			     {QStringLiteral("selfDeclaredMadeForKids"), settings.value(QStringLiteral("made_for_kids")).toString() == QStringLiteral("yes")}}},
@@ -446,6 +551,10 @@ void YouTubeProvider::finalize(const PreparedSession &session, Callback<RemoteSt
 		if (status.value->verification == Verification::Ended) {
 			deleteResource(QStringLiteral("liveStreams"), session.remoteStreamId);
 			done(Result<RemoteStatus>::success({Verification::Ended, lifecycle, session.publicUrl}));
+			return;
+		}
+		if ((lifecycle == QStringLiteral("created") || lifecycle == QStringLiteral("ready")) && session.scheduled) {
+			done(Result<RemoteStatus>::success({Verification::Ended, QStringLiteral("kept-scheduled"), session.publicUrl}));
 			return;
 		}
 		if (lifecycle == QStringLiteral("created") || lifecycle == QStringLiteral("ready")) {

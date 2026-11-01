@@ -2,6 +2,7 @@
 
 #include "media/media-engine.hpp"
 #include "orchestration/coordinator.hpp"
+#include "orchestration/scheduler.hpp"
 #include "radio/radio-station.hpp"
 #include "testing/websocket-vendor.hpp"
 
@@ -19,6 +20,7 @@ namespace multistream {
 class LocalTestProvider;
 
 namespace ui {
+class AlertCenter;
 class SessionController;
 class StatusStrip;
 class StreamButtonBridge;
@@ -53,6 +55,8 @@ private:
 	MediaEngine *engine_ = nullptr;
 	Coordinator *coordinator_ = nullptr;
 	radio::Station *radio_ = nullptr;
+	Scheduler *scheduler_ = nullptr;
+	ui::AlertCenter *alerts_ = nullptr;
 	ui::SessionController *controller_ = nullptr;
 	QPointer<ui::StatusStrip> strip_;
 	QPointer<QMainWindow> mainWindow_;
@@ -62,6 +66,7 @@ private:
 	obs_hotkey_id startHotkey_ = OBS_INVALID_HOTKEY_ID;
 	obs_hotkey_id stopHotkey_ = OBS_INVALID_HOTKEY_ID;
 	bool closeApproved_ = false;
+	QStringList lastScheduleErrors_;
 };
 
 } // namespace multistream

@@ -34,12 +34,21 @@ public:
 	void inspect(const PreparedSession &session, Callback<RemoteStatus> done) override;
 	void finalize(const PreparedSession &session, Callback<RemoteStatus> done) override;
 
+	bool supportsScheduling() const override { return true; }
+	void schedule(const ScheduleRequest &request, Callback<ScheduledBroadcast> done) override;
+	void cancelScheduled(const QString &ref, Callback<bool> done) override;
+
 private:
 	void exchangeCode(const QString &code, const QString &verifier, const QString &redirectUri, Callback<Account> done);
 	void withAccessToken(Callback<QString> done);
 	void api(HttpRequest request, bool createsRemoteResource, Callback<QJsonObject> done);
 	void fetchChannel(Callback<Account> done);
-	void createBroadcast(const StartIntent &intent, const QJsonObject &stream, Callback<PreparedSession> done);
+	void createSession(const QString &title, const QString &description, const QDateTime &startsAt, const QString &label,
+			   Callback<PreparedSession> done);
+	void createBroadcast(const QString &title, const QString &description, const QDateTime &startsAt, const QJsonObject &stream,
+			     Callback<PreparedSession> done);
+	void resumeScheduled(const StartIntent &intent, Callback<PreparedSession> done);
+	void updateSnippet(const QString &broadcastId, const QJsonObject &snippet, const StartIntent &intent, Callback<QJsonObject> done);
 	void bind(const QString &broadcastId, const QJsonObject &stream, Callback<PreparedSession> done);
 	void deleteResource(const QString &kind, const QString &id);
 	Error describe(const HttpResponse &response, bool createsRemoteResource) const;

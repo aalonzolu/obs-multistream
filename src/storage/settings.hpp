@@ -1,5 +1,7 @@
 #pragma once
 
+#include <QDateTime>
+#include <QJsonArray>
 #include <QJsonObject>
 #include <QList>
 #include <QString>
@@ -14,6 +16,7 @@ struct StreamTemplate {
 };
 
 QString renderTemplateText(const QString &text);
+QString renderTemplateText(const QString &text, const QDateTime &when);
 
 class Settings {
 public:
@@ -36,6 +39,9 @@ public:
 
 	bool selected(const QString &provider) const;
 	void setSelected(const QString &provider, bool selected);
+
+	QJsonArray list(const QString &key) const;
+	void setList(const QString &key, const QJsonArray &values);
 
 	QJsonObject provider(const QString &provider) const;
 	void setProvider(const QString &provider, const QJsonObject &values);

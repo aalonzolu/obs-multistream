@@ -45,9 +45,12 @@ Presioná **Iniciar transmisión** en los controles de OBS. En lugar de salir di
    - YouTube: visibilidad y si el contenido es para niños (YouTube lo exige; no se elige por vos).
    - Facebook: **Privado al terminar** deja el video en la página pero visible solo para administradores.
    - TikTok: muestra solo los primeros 32 caracteres del título; si lo recorta, te avisa.
-5. **Calidad**: con la subida estimada para los destinos elegidos.
+5. **Grabar también en este equipo**: inicia la grabación de OBS junto con la transmisión y la detiene al terminar, con la carpeta y el formato que tenga configurados OBS.
+6. **Calidad**: con la subida estimada para los destinos elegidos.
 
 Presioná **Transmitir** (o Enter). Si falta algo, el botón dice qué.
+
+Si hay una transmisión programada para las próximas horas, arriba aparece **Usar la transmisión programada** ya marcado: completa título y descripción y transmite en los directos que ya compartiste (ver [Programar con anticipación](#7-programar-con-anticipación)).
 
 ## 4. Durante la transmisión
 
@@ -86,7 +89,39 @@ Presioná **Finalizar transmisión**. Multistream pide confirmación para evitar
 
 Al confirmar, cierra el directo en cada plataforma. Si alguna no responde, queda en **Cierre pendiente** con **Reintentar cierre**.
 
-## 7. Radio
+## 7. Programar con anticipación
+
+Para compartir el enlace antes del evento (por WhatsApp o redes), creá el directo con fecha y hora desde el engranaje → **Programar transmisión…** o desde el botón **Programar…** de la ventana Transmitir.
+
+![Programar transmisión](capturas/11-programar.png)
+
+1. Título y descripción (con `{fecha}`, que toma la fecha programada) y la fecha y hora de inicio.
+2. Elegí los destinos y presioná **Programar**. Los enlaces quedan copiados, listos para pegar.
+3. El día del evento, «Iniciar transmisión» ofrece usar esa transmisión programada y sale al aire en esos mismos directos. Si empezás antes de la hora, el directo arranca igual.
+
+En **Próximas transmisiones** podés volver a copiar los enlaces o cancelar una (se borra en cada plataforma). Si una transmisión programada nunca salió al aire, finalizar no la borra: sigue disponible para intentar de nuevo.
+
+Se puede programar en YouTube. En Facebook, Meta solo permite programar a las apps que aprobó con acceso avanzado; si la tuya no lo tiene, la ventana lo avisa y programa solo en YouTube. TikTok y los destinos RTMP no permiten programar: se suman al momento de transmitir.
+
+## 8. Otros destinos (RTMP)
+
+Para transmitir a un servicio que no tiene integración propia (Kick, Vimeo, Twitch con clave, un servidor propio), usá el engranaje → **Agregar destino RTMP…**.
+
+![Agregar destino RTMP](capturas/12-destino-rtmp.png)
+
+Ponele un nombre, el servidor (`rtmp://` o `rtmps://`) y la clave de transmisión; opcionalmente el enlace para ver el directo. Aparece como un destino más en la barra, en Transmitir y en la ventana de estado. Para cambiarlo o quitarlo, clic derecho en su ícono → **Editar destino…** o **Quitar destino**.
+
+## 9. Avisos
+
+Multistream avisa con un sonido y una notificación cuando un destino o la radio se cae, y otra vez cuando vuelve.
+
+También vigila el audio: si la pista que se transmite lleva 20 segundos en silencio (micrófono silenciado, fuente apagada o pista equivocada), aparece **Sin audio** en la barra de estado y suena el aviso. Se retira solo cuando vuelve el sonido.
+
+![Aviso de silencio en la barra de estado](capturas/13-barra-sin-audio.png)
+
+Los dos avisos se pueden desactivar desde el engranaje (**Avisos con sonido** y **Avisar si no hay audio**). Las notificaciones usan el ícono de OBS en la bandeja del sistema, si está activado en la configuración de OBS.
+
+## 10. Radio
 
 Multistream puede reemplazar a BUTT u otro programa de radio: envía el audio de OBS a un servidor Icecast (también AzuraCast o Liquidsoap), sola o junto con el video.
 
@@ -99,17 +134,19 @@ Multistream puede reemplazar a BUTT u otro programa de radio: envía el audio de
 
 Para salir al aire, marcá **Radio** en la ventana Transmitir, o usá clic derecho en el ícono de la radio → **Iniciar la radio** para transmitir solo audio. La radio es independiente: si finalizás el video, la confirmación pregunta si también querés detener la radio. Si se corta la conexión, reconecta sola; si el servidor rechaza la contraseña, lo avisa y no insiste.
 
-## 8. Si OBS se cerró a la fuerza
+## 11. Si OBS se cerró a la fuerza
 
 Al volver a abrir OBS, la barra muestra **Emisión sin cerrar**. Abrí la ventana de estado y elegí **Cerrarla ahora**. Hasta resolverla no se puede iniciar otra transmisión.
 
-## 9. Opciones
+## 12. Opciones
 
 El engranaje de la barra tiene:
 
 - **Transmitir… / Finalizar transmisión…**
 - **Estado de la transmisión…**
 - **Iniciar / Detener la radio** y **Configurar radio…**
+- **Programar transmisión…** y **Agregar destino RTMP…**
+- **Avisos con sonido** y **Avisar si no hay audio**
 - **Iniciar desde el botón de OBS**: desmarcalo si querés que «Iniciar transmisión» vuelva a usar el servicio configurado en OBS.
 - **Comprobar configuración…**: codificador, cuentas conectadas y subida necesaria.
 

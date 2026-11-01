@@ -34,11 +34,11 @@ export class Graph {
     return this.env.META_GRAPH_VERSION;
   }
 
-  async call<T>(method: "GET" | "POST", path: string, token: string, params: Record<string, string> = {}): Promise<GraphResult<T>> {
+  async call<T>(method: "GET" | "POST" | "DELETE", path: string, token: string, params: Record<string, string> = {}): Promise<GraphResult<T>> {
     const query = new URLSearchParams({ ...params, access_token: token, appsecret_proof: await hmacSha256Hex(this.env.META_APP_SECRET, token) });
     const init: RequestInit = { method };
     let url = `${this.base}${path}`;
-    if (method === "GET") {
+    if (method !== "POST") {
       url += `?${query}`;
     } else {
       init.body = query;
