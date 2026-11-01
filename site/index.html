@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Multistream para OBS</title>
+<meta name="description" content="Plugin gratuito y de código abierto para OBS Studio que transmite a Facebook, YouTube, TikTok y una radio Icecast con un solo botón, sin copiar claves.">
+<meta property="og:title" content="Multistream para OBS">
+<meta property="og:description" content="Un botón en OBS. Facebook, YouTube, TikTok y tu radio al aire a la vez.">
+<meta property="og:image" content="capturas/00-obs-al-aire.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%23E5243B'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ink: #0e1014;
+  --deck: #161921;
+  --rule: #262a35;
+  --text: #eceef2;
+  --muted: #a6acb8;
+  --signal: #e5243b;
+  --signal-soft: #ff6b7c;
+  --amber: #e8b32e;
+  --radius: 14px;
+  --measure: 62ch;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scrollbar-color: #3a3f4c var(--ink); }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 1.0625rem/1.6 "Instrument Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+::selection { background: var(--signal); color: #fff; }
+a { color: var(--text); text-decoration-thickness: 1px; text-underline-offset: 0.22em; text-decoration-color: var(--signal-soft); }
+a:hover { color: #fff; text-decoration-color: var(--signal); }
+:focus-visible { outline: 2px solid var(--signal-soft); outline-offset: 3px; border-radius: 6px; }
+img { display: block; max-width: 100%; height: auto; }
+h1, h2, h3 { font-family: "Bricolage Grotesque", "Instrument Sans", sans-serif; text-wrap: balance; letter-spacing: -0.02em; margin: 0; }
+p { margin: 0; }
+
+.wrap { width: min(1180px, 100% - 32px); margin-inline: auto; }
+
+header.top { position: sticky; top: 0; z-index: 10; background: color-mix(in srgb, var(--ink) 88%, transparent); backdrop-filter: saturate(140%) blur(10px); border-bottom: 1px solid var(--rule); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 60px; gap: 16px; }
+.mark { display: inline-flex; align-items: center; gap: 10px; font: 800 1.15rem/1 "Bricolage Grotesque", sans-serif; text-decoration: none; letter-spacing: -0.01em; }
+.mark svg { flex: none; }
+.live-dot { animation: breathe 1.8s ease-in-out infinite; transform-origin: center; }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+nav { display: flex; gap: 22px; font-weight: 500; font-size: 0.95rem; }
+nav a { text-decoration: none; color: var(--muted); }
+nav a:hover { color: var(--text); }
+
+.hero { padding: clamp(48px, 9vw, 112px) 0 40px; }
+.hero h1 { font-size: clamp(2.5rem, 6.2vw, 5.25rem); line-height: 1.02; font-weight: 800; max-width: 15ch; }
+.hero h1 em { font-style: normal; color: var(--signal-soft); }
+.hero .lede { margin-top: 24px; font-size: clamp(1.1rem, 1.6vw, 1.3rem); color: var(--muted); max-width: 52ch; }
+.actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
+.button { display: inline-flex; align-items: center; gap: 10px; padding: 14px 22px; border-radius: 999px; font-weight: 600; text-decoration: none; transition: background-color .2s ease-out, transform .2s ease-out; }
+.button.primary { background: #d01f35; color: #fff; }
+.button.primary:hover { background: #b81a2e; transform: translateY(-1px); }
+.button.quiet { border: 1px solid var(--rule); color: var(--text); }
+.button.quiet:hover { border-color: #3c4250; background: var(--deck); }
+
+.shot { margin-top: clamp(40px, 6vw, 72px); position: relative; }
+.shot > img { border-radius: var(--radius); border: 1px solid var(--rule); box-shadow: 0 30px 80px -30px rgba(0,0,0,.85), 0 8px 24px -12px rgba(0,0,0,.6); }
+.shot figcaption { margin-top: 14px; color: var(--muted); font-size: 0.95rem; }
+.callout { position: absolute; left: clamp(12px, 4%, 48px); bottom: clamp(48px, 9%, 96px); width: min(46%, 420px); border-radius: 10px; overflow: hidden; border: 1px solid #3a3f4c; box-shadow: 0 18px 40px -16px rgba(0,0,0,.9); background: var(--deck); }
+.callout img { width: 100%; }
+
+section { padding: clamp(56px, 8vw, 104px) 0; border-top: 1px solid var(--rule); }
+section > .wrap > h2 { font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: 1.08; font-weight: 800; max-width: 22ch; }
+section > .wrap > p.intro { margin-top: 16px; color: var(--muted); max-width: var(--measure); font-size: 1.12rem; }
+
+.feature { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: clamp(28px, 5vw, 72px); align-items: center; margin-top: clamp(48px, 7vw, 88px); }
+.feature.flip { grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); }
+.feature.flip .copy { order: 2; }
+.feature h3 { font-size: clamp(1.45rem, 2.4vw, 2rem); line-height: 1.15; font-weight: 800; }
+.feature .copy p { margin-top: 14px; color: var(--muted); max-width: 46ch; }
+.feature .copy ul { margin: 16px 0 0; padding-left: 1.1em; color: var(--muted); max-width: 46ch; }
+.feature .copy li + li { margin-top: 6px; }
+.feature .copy strong { color: var(--text); font-weight: 600; }
+.feature figure { margin: 0; }
+.feature figure img { border-radius: 12px; border: 1px solid var(--rule); box-shadow: 0 24px 60px -28px rgba(0,0,0,.9); }
+.feature figure.tall img { max-width: 440px; margin-inline: auto; }
+
+.details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px 64px; margin: clamp(40px, 6vw, 64px) 0 0; }
+.details dt { font: 600 1.15rem/1.3 "Bricolage Grotesque", sans-serif; }
+.details dd { margin: 8px 0 0; color: var(--muted); max-width: 48ch; }
+
+.install { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); gap: clamp(32px, 6vw, 80px); margin-top: clamp(36px, 5vw, 56px); }
+.install ol { margin: 0; padding: 0; list-style: none; counter-reset: step; }
+.install ol li { counter-increment: step; display: grid; grid-template-columns: 2.4rem 1fr; gap: 4px 12px; padding: 18px 0; border-bottom: 1px solid var(--rule); }
+.install ol li::before { content: counter(step); grid-row: span 2; font: 800 1.4rem/1 "Bricolage Grotesque", sans-serif; color: var(--signal-soft); font-variant-numeric: tabular-nums; }
+.install ol li strong { font-weight: 600; }
+.install ol li span { color: var(--muted); }
+.install code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.9em; background: var(--deck); border: 1px solid var(--rule); padding: 1px 6px; border-radius: 6px; color: var(--text); }
+.requirements h3 { font-size: 1.15rem; font-weight: 600; }
+.requirements ul { margin: 12px 0 0; padding-left: 1.1em; color: var(--muted); }
+.requirements li + li { margin-top: 6px; }
+.requirements p { margin-top: 18px; color: var(--muted); font-size: 0.95rem; }
+
+footer { border-top: 1px solid var(--rule); padding: 36px 0 48px; color: var(--muted); font-size: 0.92rem; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
+
+@media (max-width: 860px) {
+  nav { gap: 16px; }
+  nav .optional { display: none; }
+  .feature, .feature.flip, .install { grid-template-columns: 1fr; }
+  .feature.flip .copy { order: 0; }
+  .details { grid-template-columns: 1fr; }
+  .callout { position: static; width: 100%; margin-top: 14px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .live-dot { animation: none; }
+  .button { transition: none; }
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="none" stroke="#e5243b" stroke-width="1.6" opacity=".55"/><circle class="live-dot" cx="11" cy="11" r="5.5" fill="#e5243b"/></svg>
+      Multistream
+    </a>
+    <nav aria-label="Principal">
+      <a class="optional" href="#como-funciona">Cómo funciona</a>
+      <a href="https://github.com/aalonzolu/obs-multistream/blob/main/docs/manual/README.md">Manual</a>
+      <a href="#instalar">Instalar</a>
+      <a class="optional" href="https://github.com/aalonzolu/obs-multistream">Código</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <h1>Un botón en OBS. <em>Todos tus destinos</em> al aire.</h1>
+    <p class="lede">Multistream es un plugin gratuito y de código abierto que transmite a Facebook, YouTube, TikTok y tu radio Icecast al mismo tiempo, sin copiar claves de transmisión ni pagar un servicio en la nube.</p>
+    <div class="actions">
+      <a class="button primary" href="#instalar">Instalar Multistream</a>
+      <a class="button quiet" href="https://github.com/aalonzolu/obs-multistream/blob/main/docs/manual/README.md">Leer el manual</a>
+    </div>
+    <figure class="shot">
+      <img src="capturas/00-obs-al-aire.png" width="1490" height="947" alt="OBS Studio al aire. Abajo a la izquierda, la barra de estado muestra el tiempo al aire y un ícono por destino.">
+      <div class="callout"><img src="capturas/04-barra-al-aire.png" width="730" height="68" alt="Barra de estado: «Al aire · 00:00:15» y los íconos de Facebook, YouTube, TikTok y la radio con su indicador rojo."></div>
+      <figcaption>Todo vive en la barra de estado de OBS: no agrega paneles ni cambia tus escenas.</figcaption>
+    </figure>
+  </div>
+
+  <section id="como-funciona">
+    <div class="wrap">
+      <h2>Pensado para quien opera en vivo, no para quien configura servidores.</h2>
+      <p class="intro">Las cuentas se conectan una vez. Después, el operador solo elige título y destinos, y mira de reojo que todo siga en rojo.</p>
+
+      <div class="feature">
+        <div class="copy">
+          <h3>«Iniciar transmisión» abre una sola ventana</h3>
+          <p>Título, descripción y destinos en un mismo lugar. Las transmisiones recientes quedan como plantillas: con <strong>{fecha}</strong> y <strong>{hora}</strong>, el título de cada semana se arma solo.</p>
+          <ul>
+            <li>Opciones de cada plataforma en su fila: visibilidad de YouTube, video privado al terminar en Facebook, aviso del título recortado en TikTok.</li>
+            <li>La subida estimada antes de salir al aire.</li>
+            <li>Si falta algo, el botón dice qué.</li>
+          </ul>
+        </div>
+        <figure><img src="capturas/02-ventana-transmitir.png" width="1760" height="1120" alt="Ventana Transmitir con recientes a la izquierda, título, descripción y los destinos Facebook, YouTube, TikTok y Radio."></figure>
+      </div>
+
+      <div class="feature flip">
+        <figure><img src="capturas/05-estado-al-aire.png" width="1200" height="892" alt="Ventana de estado: los cuatro destinos al aire con lo enviado y los frames perdidos."></figure>
+        <div class="copy">
+          <h3>Un vistazo y sabés qué está al aire</h3>
+          <p>Cada destino tiene un indicador con forma y color propios: listo, enviando, al aire, reconectando o necesita atención. Un clic en cualquier ícono muestra el estado completo, con un botón para abrir cada directo.</p>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="copy">
+          <h3>Si un destino se cae, los demás siguen</h3>
+          <p>Cada plataforma tiene su propia conexión. Ante un corte, Multistream reintenta solo en el mismo directo; si no puede, ese destino queda marcado y se arregla aparte.</p>
+          <ul>
+            <li><strong>Reintentar</strong>: vuelve al mismo directo, con los mismos espectadores.</li>
+            <li><strong>Nuevo directo</strong>: crea otro solo en ese destino y cierra el anterior.</li>
+          </ul>
+        </div>
+        <figure><img src="capturas/08-estado-parcial.png" width="1200" height="1000" alt="TikTok sin señal con el botón Reintentar, mientras Facebook, YouTube y la radio siguen al aire."></figure>
+      </div>
+
+      <div class="feature flip">
+        <figure class="tall"><img src="capturas/10-configurar-radio.png" width="1040" height="1642" alt="Configuración de la radio: servidor Icecast, formato AAC a 192 kbps, pista de audio y datos de la estación."></figure>
+        <div class="copy">
+          <h3>La radio, sin otro programa</h3>
+          <p>Envía el audio de OBS a Icecast, AzuraCast o Liquidsoap, sola o junto con el video. Reemplaza a programas como BUTT e importa su configuración.</p>
+          <ul>
+            <li>MP3, AAC, Opus, Vorbis o FLAC sin pérdida.</li>
+            <li>Cualquier pista de audio de OBS, para una mezcla aparte.</li>
+            <li>Reconecta sola; la contraseña queda en el llavero del sistema.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Los detalles que importan cuando ya estás al aire.</h2>
+      <dl class="details">
+        <div><dt>Confirmación antes de cortar</dt><dd>Finalizar pide confirmación, y si la radio salió con el video, pregunta si también la detenés.</dd></div>
+        <div><dt>Recuperación tras un cierre inesperado</dt><dd>Si OBS se cierra a la fuerza, al volver avisa que quedó una emisión abierta y la cierra en cada plataforma.</dd></div>
+        <div><dt>Sin claves a la vista</dt><dd>Las cuentas se autorizan en el navegador y las credenciales quedan en el llavero de macOS o el Administrador de credenciales de Windows.</dd></div>
+        <div><dt>Un solo codificador</dt><dd>El mismo video codificado sirve para todos los destinos: la carga del equipo no se multiplica.</dd></div>
+        <div><dt>Atajos de teclado</dt><dd>Transmitir y finalizar se asignan desde los atajos de OBS, como cualquier otra acción.</dd></div>
+        <div><dt>Hecho para el tema de OBS</dt><dd>Respeta los temas claro y oscuro, se maneja con teclado y ningún estado depende solo del color.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="instalar">
+    <div class="wrap">
+      <h2>Instalar</h2>
+      <div class="install">
+        <ol>
+          <li><strong>Descargá el paquete para tu sistema</strong><span>Desde <a href="https://github.com/aalonzolu/obs-multistream/releases/latest">la última versión</a> en GitHub: Windows (x64) o macOS (Intel y Apple Silicon).</span></li>
+          <li><strong>Copialo en la carpeta de plugins de OBS</strong><span>Windows: <code>C:\ProgramData\obs-studio\plugins</code>. macOS: <code>~/Library/Application Support/obs-studio/plugins</code>.</span></li>
+          <li><strong>Abrí OBS y conectá tus cuentas</strong><span>Clic en cualquier ícono de la barra de estado y «Conectar» en cada plataforma.</span></li>
+          <li><strong>Presioná «Iniciar transmisión»</strong><span>Elegí título y destinos, y salí al aire.</span></li>
+        </ol>
+        <div class="requirements">
+          <h3>Requisitos</h3>
+          <ul>
+            <li>OBS Studio 31 o más reciente.</li>
+            <li>Windows 10/11 de 64 bits o macOS 12 en adelante.</li>
+            <li>Una página de Facebook, un canal de YouTube habilitado para transmitir y, para TikTok, una cuenta con acceso a LIVE vía Streamlabs.</li>
+            <li>Para la radio: un servidor Icecast, AzuraCast o Liquidsoap.</li>
+          </ul>
+          <p>¿Querés usar tus propias apps de Google y Meta? Las <a href="https://github.com/aalonzolu/obs-multistream/blob/main/docs/estado-implementacion.md#desplegar-tus-propias-credenciales">notas técnicas</a> explican cómo.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Multistream es software libre bajo licencia GPL-2.0 · <a href="https://github.com/aalonzolu/obs-multistream">Código fuente</a></p>
+    <p>No está afiliado con OBS Project, Meta, Google, TikTok ni Streamlabs.</p>
+  </div>
+</footer>
+</body>
+</html>
