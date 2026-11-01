@@ -23,9 +23,27 @@ void Provider::chooseDestination(const QString &, Callback<Account> done)
 						  QStringLiteral("Este destino no requiere elegir página o canal."))));
 }
 
+namespace {
+
+bool gBrowserSuppressed = false;
+QString gLastAuthorizationUrl;
+
+} // namespace
+
 bool openInBrowser(const QString &url)
 {
-	return QDesktopServices::openUrl(QUrl(url));
+	gLastAuthorizationUrl = url;
+	return gBrowserSuppressed || QDesktopServices::openUrl(QUrl(url));
+}
+
+void setBrowserSuppressed(bool suppressed)
+{
+	gBrowserSuppressed = suppressed;
+}
+
+QString lastBrowserUrl()
+{
+	return gLastAuthorizationUrl;
 }
 
 } // namespace multistream

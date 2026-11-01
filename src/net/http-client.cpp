@@ -1,32 +1,100 @@
 #include "net/http-client.hpp"
 
+#include <curl/curl.h>
+
 #include <QJsonObject>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
+#include <QMetaObject>
 #include <QPointer>
+#include <QThreadPool>
 #include <QUuid>
 
 namespace multistream {
 
 namespace {
 
-bool neverLeftTheMachine(QNetworkReply::NetworkError error)
+constexpr long kConnectTimeoutMs = 5000;
+
+bool neverLeftTheMachine(CURLcode code)
 {
-	switch (error) {
-	case QNetworkReply::ConnectionRefusedError:
-	case QNetworkReply::HostNotFoundError:
-	case QNetworkReply::SslHandshakeFailedError:
-	case QNetworkReply::ProxyConnectionRefusedError:
-	case QNetworkReply::ProxyNotFoundError:
-	case QNetworkReply::NetworkSessionFailedError:
-	case QNetworkReply::TemporaryNetworkFailureError:
-	case QNetworkReply::UnknownProxyError:
+	switch (code) {
+	case CURLE_COULDNT_RESOLVE_HOST:
+	case CURLE_COULDNT_RESOLVE_PROXY:
+	case CURLE_COULDNT_CONNECT:
+	case CURLE_SSL_CONNECT_ERROR:
+	case CURLE_PEER_FAILED_VERIFICATION:
+	case CURLE_SSL_CACERT_BADFILE:
+	case CURLE_URL_MALFORMAT:
+	case CURLE_UNSUPPORTED_PROTOCOL:
 		return true;
 	default:
 		return false;
 	}
 }
+
+size_t appendBody(char *data, size_t size, size_t count, void *target)
+{
+	static_cast<QByteArray *>(target)->append(data, static_cast<qsizetype>(size * count));
+	return size * count;
+}
+
+HttpResponse perform(const HttpRequest &request)
+{
+	HttpResponse response;
+	CURL *curl = curl_easy_init();
+	if (!curl) {
+		response.delivery = Delivery::NotSent;
+		response.networkError = QStringLiteral("curl_easy_init");
+		return response;
+	}
+
+	const QByteArray url = request.url.toEncoded();
+	curl_slist *headers = nullptr;
+	for (const auto &[name, value] : request.headers)
+		headers = curl_slist_append(headers, (name + ": " + value).constData());
+	headers = curl_slist_append(headers, "Expect:");
+
+	curl_easy_setopt(curl, CURLOPT_URL, url.constData());
+	curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+	curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT_MS, kConnectTimeoutMs);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT_MS, static_cast<long>(request.timeoutMs));
+	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
+	curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &appendBody);
+	curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response.body);
+	if (request.method == "POST") {
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.body.constData());
+		curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, static_cast<curl_off_t>(request.body.size()));
+	} else if (request.method != "GET") {
+		curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, request.method.constData());
+		if (!request.body.isEmpty()) {
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDS, request.body.constData());
+			curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, static_cast<curl_off_t>(request.body.size()));
+		}
+	}
+
+	const CURLcode code = curl_easy_perform(curl);
+	if (code == CURLE_OK) {
+		long status = 0;
+		char *contentType = nullptr;
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+		curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &contentType);
+		response.status = static_cast<int>(status);
+		response.contentType = contentType ? QByteArray(contentType) : QByteArray();
+	} else {
+		response.body.clear();
+		response.networkError = QString::fromUtf8(curl_easy_strerror(code));
+		response.delivery = neverLeftTheMachine(code) ? Delivery::NotSent : Delivery::Uncertain;
+	}
+	curl_slist_free_all(headers);
+	curl_easy_cleanup(curl);
+	return response;
+}
+
+} // namespace
+
+namespace {
 
 QString upstreamMessage(const QJsonDocument &document)
 {
@@ -116,32 +184,24 @@ HttpClient &HttpClient::shared()
 	return *client;
 }
 
-HttpClient::HttpClient(QObject *parent) : QObject(parent), manager_(new QNetworkAccessManager(this)) {}
+HttpClient::HttpClient(QObject *parent) : QObject(parent), pool_(new QThreadPool(this))
+{
+	curl_global_init(CURL_GLOBAL_DEFAULT);
+	pool_->setMaxThreadCount(8);
+}
 
 void HttpClient::send(const HttpRequest &request, QObject *context, std::function<void(const HttpResponse &)> done)
 {
-	QNetworkRequest networkRequest(request.url);
-	networkRequest.setTransferTimeout(request.timeoutMs);
-	networkRequest.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
-	for (const auto &[name, value] : request.headers)
-		networkRequest.setRawHeader(name, value);
-
-	QNetworkReply *reply = manager_->sendCustomRequest(networkRequest, request.method, request.body);
 	QPointer<QObject> guard(context);
-	connect(reply, &QNetworkReply::finished, this, [reply, guard, done = std::move(done)] {
-		reply->deleteLater();
-		HttpResponse response;
-		const QVariant status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute);
-		if (status.isValid()) {
-			response.status = status.toInt();
-			response.body = reply->readAll();
-			response.contentType = reply->header(QNetworkRequest::ContentTypeHeader).toByteArray();
-		} else {
-			response.networkError = reply->errorString();
-			response.delivery = neverLeftTheMachine(reply->error()) ? Delivery::NotSent : Delivery::Uncertain;
-		}
-		if (guard)
-			done(response);
+	pool_->start([this, request, guard, done = std::move(done)] {
+		const HttpResponse response = perform(request);
+		QMetaObject::invokeMethod(
+			this,
+			[guard, done, response] {
+				if (guard)
+					done(response);
+			},
+			Qt::QueuedConnection);
 	});
 }
 

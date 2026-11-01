@@ -116,7 +116,6 @@ void YouTubeProvider::connectAccount(Callback<Account> done)
 
 	connect(receiver, &LoopbackReceiver::received, this,
 		[this, receiver, state, verifier = pkce.verifier, redirectUri, done](const QUrlQuery &params, const QString &) {
-			receiver->deleteLater();
 			if (params.queryItemValue(QStringLiteral("state")) != state) {
 				done(Result<Account>::failure(Error::make(ErrorKind::Cancelled, QStringLiteral("STATE"),
 									  QStringLiteral("La respuesta de Google no corresponde a este intento."))));

@@ -36,6 +36,7 @@ private:
 	static void handleFrontendEvent(obs_frontend_event event, void *data);
 	static void handleSave(obs_data_t *data, bool saving, void *self);
 	void onFinishedLoading();
+	void revealDockOnFirstRun();
 	void onExit();
 	void registerHotkeys();
 	void registerTestRequests();

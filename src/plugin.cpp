@@ -11,6 +11,7 @@
 #include <plugin-support.h>
 
 #include <QCloseEvent>
+#include <QDockWidget>
 #include <QJsonArray>
 #include <QMainWindow>
 #include <QMessageBox>
@@ -152,8 +153,24 @@ void Plugin::registerHotkeys()
 		this);
 }
 
+void Plugin::revealDockOnFirstRun()
+{
+	if (!mainWindow_ || Settings::shared().provider(QStringLiteral("ui")).value(QStringLiteral("dock_revealed")).toBool())
+		return;
+	auto *dock = mainWindow_->findChild<QDockWidget *>(QString::fromLatin1(kDockId));
+	if (!dock)
+		return;
+	if (mainWindow_->dockWidgetArea(dock) == Qt::NoDockWidgetArea)
+		mainWindow_->addDockWidget(Qt::RightDockWidgetArea, dock);
+	dock->setFloating(false);
+	dock->setVisible(true);
+	dock->raise();
+	Settings::shared().mergeProvider(QStringLiteral("ui"), {{QStringLiteral("dock_revealed"), true}});
+}
+
 void Plugin::onFinishedLoading()
 {
+	revealDockOnFirstRun();
 	if (!vendor_.registerWithObsWebsocket())
 		obs_log(LOG_INFO, "obs-websocket not available; automation requests disabled");
 }
@@ -215,8 +232,13 @@ void Plugin::registerTestRequests()
 	vendor_.add(QStringLiteral("Connect"), [this](const QJsonObject &request) {
 		if (!dock_ || !coordinator_->provider(text(request, "provider")))
 			return failure(QStringLiteral("destino desconocido"));
+		setBrowserSuppressed(!request.value(QStringLiteral("open_browser")).toBool(true));
 		dock_->connectProvider(text(request, "provider"));
 		return success();
+	});
+
+	vendor_.add(QStringLiteral("GetAuthorizationUrl"), [](const QJsonObject &) {
+		return success({{QStringLiteral("url"), lastBrowserUrl()}});
 	});
 
 	vendor_.add(QStringLiteral("ChooseDestination"), [this](const QJsonObject &request) {
@@ -245,6 +267,8 @@ void Plugin::registerTestRequests()
 			Settings::shared().mergeProvider(it.key(), it.value().toObject());
 		if (request.contains(QStringLiteral("profile")))
 			Settings::shared().setProfileId(text(request, "profile"));
+		if (request.contains(QStringLiteral("video_encoder")))
+			Settings::shared().setVideoEncoder(text(request, "video_encoder"));
 		return success();
 	});
 

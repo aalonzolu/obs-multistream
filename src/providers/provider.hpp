@@ -73,5 +73,7 @@ signals:
 };
 
 bool openInBrowser(const QString &url);
+void setBrowserSuppressed(bool suppressed);
+QString lastBrowserUrl();
 
 } // namespace multistream

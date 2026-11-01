@@ -34,6 +34,7 @@ private:
 	QTcpServer *server_;
 	QTimer ttl_;
 	bool done_ = false;
+	bool succeeded_ = false;
 };
 
 } // namespace multistream

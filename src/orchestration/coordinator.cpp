@@ -303,7 +303,9 @@ void Coordinator::afterPreflight(int generation)
 	}
 
 	QString error;
-	if (!engine_->prepareEncoders(mediaProfile(Settings::shared().profileId()), &error)) {
+	MediaProfile profile = mediaProfile(Settings::shared().profileId());
+	profile.encoderOverride = Settings::shared().videoEncoder();
+	if (!engine_->prepareEncoders(profile, &error)) {
 		for (const QString &id : sessionTargets())
 			at(id).inSession = false;
 		setState(SessionState::Attention, error);

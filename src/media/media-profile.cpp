@@ -31,9 +31,9 @@ bool isUsableH264(const char *id)
 const QList<MediaProfile> &mediaProfiles()
 {
 	static const QList<MediaProfile> profiles = {
-		{QStringLiteral("economy"), QStringLiteral("Ahorro · 720p30"), 1280, 720, 30, 3000, 160, 2},
-		{QStringLiteral("balanced"), QStringLiteral("Equilibrado · 1080p30"), 1920, 1080, 30, 4500, 160, 2},
-		{QStringLiteral("detail"), QStringLiteral("Mayor detalle · 1080p30"), 1920, 1080, 30, 6000, 160, 2},
+		{QStringLiteral("economy"), QStringLiteral("Ahorro · 720p30"), 1280, 720, 30, 3000, 160, 2, {}},
+		{QStringLiteral("balanced"), QStringLiteral("Equilibrado · 1080p30"), 1920, 1080, 30, 4500, 160, 2, {}},
+		{QStringLiteral("detail"), QStringLiteral("Mayor detalle · 1080p30"), 1920, 1080, 30, 6000, 160, 2, {}},
 	};
 	return profiles;
 }

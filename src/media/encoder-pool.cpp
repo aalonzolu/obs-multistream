@@ -18,6 +18,7 @@ OBSDataAutoRelease videoSettings(const MediaProfile &profile)
 	obs_data_set_string(settings, "profile", "high");
 	obs_data_set_string(settings, "preset", "veryfast");
 	obs_data_set_int(settings, "bf", 2);
+	obs_data_set_bool(settings, "bframes", true);
 	return settings;
 }
 
@@ -48,7 +49,8 @@ bool EncoderPool::prepare(const MediaProfile &profile, QString *error)
 	const uint32_t obsFps = ovi.fps_den ? ovi.fps_num / ovi.fps_den : 0;
 	const uint32_t divisor = (obsFps > profile.fps && profile.fps && obsFps % profile.fps == 0) ? obsFps / profile.fps : 1;
 
-	if (ready() && profileId_ == profile.id && width_ == width && height_ == height && fps_ == obsFps / divisor)
+	if (ready() && profileId_ == profile.id && encoderOverride_ == profile.encoderOverride && width_ == width &&
+	    height_ == height && fps_ == obsFps / divisor)
 		return true;
 
 	if (active()) {
@@ -56,7 +58,9 @@ bool EncoderPool::prepare(const MediaProfile &profile, QString *error)
 		return false;
 	}
 
-	const QString encoderId = preferredH264EncoderId();
+	const QString encoderId = profile.encoderOverride.isEmpty() || !availableH264EncoderIds().contains(profile.encoderOverride)
+					  ? preferredH264EncoderId()
+					  : profile.encoderOverride;
 	if (encoderId.isEmpty()) {
 		*error = QStringLiteral("OBS no tiene ningún codificador H.264 disponible.");
 		return false;
@@ -81,6 +85,7 @@ bool EncoderPool::prepare(const MediaProfile &profile, QString *error)
 	video_ = std::move(video);
 	audio_ = std::move(audio);
 	videoEncoderId_ = encoderId;
+	encoderOverride_ = profile.encoderOverride;
 	profileId_ = profile.id;
 	width_ = width;
 	height_ = height;

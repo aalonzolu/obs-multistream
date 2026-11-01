@@ -93,6 +93,13 @@ target_sources(
 )
 
 if(APPLE)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE curl)
+else()
+  find_package(CURL REQUIRED)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE CURL::libcurl)
+endif()
+
+if(APPLE)
   target_sources(${CMAKE_PROJECT_NAME} PRIVATE src/security/secret-store-macos.cpp)
   target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "$<LINK_LIBRARY:FRAMEWORK,Security.framework>" "$<LINK_LIBRARY:FRAMEWORK,CoreFoundation.framework>")
 elseif(WIN32)

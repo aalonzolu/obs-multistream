@@ -23,6 +23,7 @@ private:
 	OBSEncoderAutoRelease audio_;
 	QString videoEncoderId_;
 	QString profileId_;
+	QString encoderOverride_;
 	uint32_t width_ = 0;
 	uint32_t height_ = 0;
 	uint32_t fps_ = 0;

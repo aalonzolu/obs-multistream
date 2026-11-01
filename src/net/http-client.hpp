@@ -11,7 +11,7 @@
 
 #include <functional>
 
-class QNetworkAccessManager;
+class QThreadPool;
 
 namespace multistream {
 
@@ -53,7 +53,7 @@ public:
 
 private:
 	explicit HttpClient(QObject *parent = nullptr);
-	QNetworkAccessManager *manager_;
+	QThreadPool *pool_;
 };
 
 Error errorFromResponse(const HttpResponse &response, const QString &provider, bool createsRemoteResource);

@@ -11,6 +11,7 @@ namespace {
 
 constexpr int kTransactionTtlMs = 5 * 60 * 1000;
 constexpr qsizetype kMaxRequestBytes = 16 * 1024;
+constexpr int kGraceAfterSuccessMs = 15000;
 
 QString page(const QString &message)
 {
@@ -98,6 +99,10 @@ void LoopbackReceiver::handle(QTcpSocket *socket)
 						 QByteArray("localhost:") + QByteArray::number(port())};
 	const bool valid = requestLine.value(0) == "GET" && expectedHosts.contains(host) && target.path() == expectedPath_;
 
+	if (valid && succeeded_) {
+		reply(socket, 200, QStringLiteral("Listo. Podés cerrar esta pestaña y volver a OBS."));
+		return;
+	}
 	if (done_ || !valid) {
 		reply(socket, 404, QStringLiteral("No encontrado."));
 		return;
@@ -110,9 +115,13 @@ void LoopbackReceiver::handle(QTcpSocket *socket)
 	}
 
 	done_ = true;
+	succeeded_ = true;
 	ttl_.stop();
 	reply(socket, 200, QStringLiteral("Listo. Podés cerrar esta pestaña y volver a OBS."));
-	server_->close();
+	QTimer::singleShot(kGraceAfterSuccessMs, this, [this] {
+		server_->close();
+		deleteLater();
+	});
 	emit received(query, target.path());
 }
 

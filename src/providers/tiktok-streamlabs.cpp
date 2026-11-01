@@ -106,7 +106,6 @@ void TikTokStreamlabsProvider::connectAccount(Callback<Account> done)
 				    .arg(pkce.challenge);
 
 	connect(receiver, &LoopbackReceiver::received, this, [this, receiver, verifier = pkce.verifier, done](const QUrlQuery &query, const QString &) {
-		receiver->deleteLater();
 		if (query.queryItemValue(QStringLiteral("success")) != QStringLiteral("true") ||
 		    !query.hasQueryItem(QStringLiteral("code"))) {
 			done(Result<Account>::failure(Error::make(ErrorKind::Cancelled, QStringLiteral("LOGIN_CANCELLED"),

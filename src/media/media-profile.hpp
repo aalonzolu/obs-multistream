@@ -14,6 +14,7 @@ struct MediaProfile {
 	int videoBitrateKbps;
 	int audioBitrateKbps;
 	int keyframeSeconds;
+	QString encoderOverride;
 };
 
 const QList<MediaProfile> &mediaProfiles();

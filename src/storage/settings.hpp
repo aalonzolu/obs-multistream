@@ -13,6 +13,8 @@ public:
 	void setTitle(const QString &title);
 	QString profileId() const;
 	void setProfileId(const QString &id);
+	QString videoEncoder() const;
+	void setVideoEncoder(const QString &id);
 
 	bool selected(const QString &provider) const;
 	void setSelected(const QString &provider, bool selected);

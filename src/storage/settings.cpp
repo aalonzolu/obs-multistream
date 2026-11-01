@@ -53,6 +53,17 @@ void Settings::setProfileId(const QString &id)
 	save();
 }
 
+QString Settings::videoEncoder() const
+{
+	return root_.value(QStringLiteral("video_encoder")).toString();
+}
+
+void Settings::setVideoEncoder(const QString &id)
+{
+	root_.insert(QStringLiteral("video_encoder"), id);
+	save();
+}
+
 bool Settings::selected(const QString &provider) const
 {
 	return this->provider(provider).value(kSelected).toBool(true);
