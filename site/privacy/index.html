@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Política de privacidad · Multistream para OBS</title>
+<meta name="description" content="Qué datos usa Multistream para OBS, dónde se guardan y cómo revocar el acceso.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%23E5243B'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="../legal.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="../">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="none" stroke="#e5243b" stroke-width="1.6" opacity=".55"/><circle cx="11" cy="11" r="5.5" fill="#e5243b"/></svg>
+      Multistream
+    </a>
+    <nav aria-label="Idioma"><a href="#es">Español</a><a href="#en">English</a></nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <article id="es" lang="es">
+    <h1>Política de privacidad</h1>
+    <p class="updated">Última actualización: 1 de noviembre de 2026.</p>
+
+    <p>Multistream para OBS es un plugin gratuito y de código abierto para OBS Studio, mantenido por IO GT (Guatemala). Se ejecuta en el equipo de cada persona que lo instala y transmite solo a las cuentas, canales y páginas que esa persona conecta y autoriza.</p>
+
+    <h2>Datos que se usan</h2>
+    <ul>
+      <li><strong>YouTube (Google):</strong> Multistream usa los Servicios de la API de YouTube con el permiso <code>youtube.force-ssl</code>. Con él lee el nombre y el identificador del canal autorizado, comprueba que el canal pueda transmitir en vivo, y crea, consulta, programa, finaliza o elimina las emisiones en vivo y los flujos de video que el propio plugin creó. No lee ni modifica otros videos, comentarios, suscriptores ni datos del canal.</li>
+      <li><strong>Facebook (Meta):</strong> con los permisos <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code> y <code>publish_video</code>, lista las páginas que administrás, transmite en la que elijas, consulta el estado del directo y, si lo pedís, deja el video en privado al terminar.</li>
+      <li><strong>TikTok:</strong> mediante la autorización de Streamlabs que la persona concede, obtiene el servidor y la clave de cada emisión y la finaliza.</li>
+    </ul>
+
+    <h2>Dónde se guardan</h2>
+    <p>Las credenciales (por ejemplo, el token de actualización de Google) se guardan solo en el almacén seguro del sistema de ese equipo: Llavero de macOS, Administrador de credenciales de Windows o el llavero de Linux. Los nombres de canal, página y cuenta se guardan en la configuración local del plugin. Las llamadas a la API de YouTube van directamente del equipo a Google; ningún servidor de Multistream recibe datos de YouTube, ni el audio o el video de las transmisiones.</p>
+    <p>Para Facebook, un servicio de autorización alojado en Cloudflare intermedia el inicio de sesión: guarda el resultado cifrado durante un máximo de 5 minutos para entregarlo al plugin y conserva cada operación de transmisión cifrada durante 24 horas para evitar duplicados.</p>
+    <p>Este sitio no usa cookies ni herramientas de analítica.</p>
+
+    <h2>Uso limitado de datos de Google</h2>
+    <p>El uso y la transferencia a cualquier otra aplicación de la información recibida de las APIs de Google cumplen la <a href="https://developers.google.com/terms/api-services-user-data-policy">Política de datos del usuario de los servicios de las APIs de Google</a>, incluidos los requisitos de uso limitado. Al usar Multistream con YouTube también se aplican las <a href="https://www.youtube.com/t/terms">Condiciones del servicio de YouTube</a> y la <a href="https://policies.google.com/privacy">Política de privacidad de Google</a>.</p>
+
+    <h2>Lo que no hacemos</h2>
+    <p>No se venden, alquilan ni comparten datos con terceros, no se usan para publicidad ni para entrenar modelos de inteligencia artificial, y nadie accede a ellos más allá de lo necesario para transmitir.</p>
+
+    <h2>Revocar y borrar</h2>
+    <ul>
+      <li>En OBS, «Desconectar» en Multistream borra la credencial guardada en el equipo.</li>
+      <li>El acceso de Google se revoca en la <a href="https://myaccount.google.com/permissions">configuración de seguridad de tu cuenta de Google</a>.</li>
+      <li>El acceso de Facebook se quita en Configuración → Integraciones comerciales.</li>
+    </ul>
+    <p>Como no hay datos guardados en servidores de Multistream más allá de los plazos indicados, al revocar el acceso y desconectar no queda información tuya.</p>
+
+    <h2>Contacto</h2>
+    <p>Para preguntas sobre esta política, abrí un aviso en <a href="https://github.com/aalonzolu/obs-multistream/issues">github.com/aalonzolu/obs-multistream/issues</a> o escribí al correo de asistencia que aparece en la pantalla de autorización de Google.</p>
+  </article>
+
+  <article id="en" lang="en">
+    <h1>Privacy policy</h1>
+    <p class="updated">Last updated: November 1, 2026.</p>
+
+    <p>Multistream for OBS is a free, open-source plugin for OBS Studio maintained by IO GT (Guatemala). It runs on the computer of each person who installs it and streams only to the accounts, channels and Pages that person connects and authorizes.</p>
+
+    <h2>Data we use</h2>
+    <ul>
+      <li><strong>YouTube (Google):</strong> Multistream uses the YouTube API Services with the <code>youtube.force-ssl</code> scope. It reads the authorized channel's name and ID, checks that the channel can live stream, and creates, reads, schedules, ends or deletes the live broadcasts and live streams the plugin itself created. It does not read or change other videos, comments, subscribers or channel data.</li>
+      <li><strong>Facebook (Meta):</strong> with <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code> and <code>publish_video</code>, it lists the Pages you manage, goes live on the one you choose, reads the live video status and, if you ask, sets the video to private when it ends.</li>
+      <li><strong>TikTok:</strong> through the Streamlabs authorization the user grants, it gets the server and key of each broadcast and ends it.</li>
+    </ul>
+
+    <h2>Where it is stored</h2>
+    <p>Credentials (for example, the Google refresh token) are stored only in the operating system's secure store on that computer: macOS Keychain, Windows Credential Manager or the Linux keyring. Channel, Page and account names are kept in the plugin's local settings. YouTube API calls go directly from the computer to Google; no Multistream server receives YouTube data, audio or video.</p>
+    <p>For Facebook, an authorization service hosted on Cloudflare handles the login: it keeps the encrypted result for at most 5 minutes to hand it to the plugin, and keeps each streaming operation encrypted for 24 hours to prevent duplicates.</p>
+    <p>This website does not use cookies or analytics.</p>
+
+    <h2>Limited use of Google data</h2>
+    <p>Multistream's use and transfer to any other app of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements. When you use Multistream with YouTube, the <a href="https://www.youtube.com/t/terms">YouTube Terms of Service</a> and the <a href="https://policies.google.com/privacy">Google Privacy Policy</a> also apply.</p>
+
+    <h2>What we do not do</h2>
+    <p>Data is never sold, rented or shared with third parties, never used for advertising or to train AI models, and nobody accesses it beyond what streaming requires.</p>
+
+    <h2>Revoking access and deleting data</h2>
+    <ul>
+      <li>In OBS, “Desconectar” (Disconnect) in Multistream deletes the credential stored on the computer.</li>
+      <li>Google access can be revoked in your <a href="https://myaccount.google.com/permissions">Google Account security settings</a>.</li>
+      <li>Facebook access can be removed in Settings → Business Integrations.</li>
+    </ul>
+    <p>Since no data is kept on Multistream servers beyond the periods above, nothing about you remains once you revoke access and disconnect.</p>
+
+    <h2>Contact</h2>
+    <p>For questions about this policy, open an issue at <a href="https://github.com/aalonzolu/obs-multistream/issues">github.com/aalonzolu/obs-multistream/issues</a> or write to the support email shown on the Google authorization screen.</p>
+  </article>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p><a href="../">Inicio</a> · <a href="../privacy/">Privacidad</a> · <a href="../terms/">Condiciones</a></p>
+    <p>No está afiliado con OBS Project, Meta, Google, TikTok ni Streamlabs.</p>
+  </div>
+</footer>
+</body>
+</html>

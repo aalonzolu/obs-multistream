@@ -1,0 +1,40 @@
+:root {
+  --ink: #0e1014;
+  --deck: #161921;
+  --rule: #262a35;
+  --text: #eceef2;
+  --muted: #a6acb8;
+  --signal: #e5243b;
+  --signal-soft: #ff6b7c;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--text);
+  font: 400 1.0625rem/1.65 system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--text); text-decoration-thickness: 1px; text-underline-offset: 0.22em; text-decoration-color: var(--signal-soft); }
+a:hover { color: #fff; text-decoration-color: var(--signal); }
+:focus-visible { outline: 2px solid var(--signal-soft); outline-offset: 3px; border-radius: 6px; }
+.wrap { width: min(760px, 100% - 32px); margin-inline: auto; }
+header.top { border-bottom: 1px solid var(--rule); }
+header.top .wrap { display: flex; align-items: center; justify-content: space-between; min-height: 60px; gap: 16px; }
+.mark { display: inline-flex; align-items: center; gap: 10px; font-weight: 800; font-size: 1.15rem; text-decoration: none; }
+nav { display: flex; gap: 18px; font-size: 0.95rem; }
+nav a { color: var(--muted); text-decoration: none; }
+nav a:hover { color: var(--text); }
+article { padding: 48px 0 56px; }
+article + article { border-top: 1px solid var(--rule); }
+h1 { font-size: clamp(2rem, 5vw, 2.75rem); line-height: 1.1; letter-spacing: -0.02em; margin: 0; }
+h2 { font-size: 1.25rem; margin: 36px 0 0; }
+p, ul { margin: 14px 0 0; color: var(--muted); max-width: 68ch; }
+li + li { margin-top: 8px; }
+strong { color: var(--text); font-weight: 600; }
+code { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 0.88em; background: var(--deck); border: 1px solid var(--rule); padding: 2px 6px; border-radius: 6px; color: var(--text); }
+.updated { font-size: 0.92rem; }
+footer { border-top: 1px solid var(--rule); padding: 32px 0 44px; color: var(--muted); font-size: 0.92rem; }
+footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 32px; }
+footer p { margin: 0; }
