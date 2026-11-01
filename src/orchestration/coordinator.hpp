@@ -49,7 +49,11 @@ struct TargetView {
 	QString publicUrl;
 	OutputStats stats;
 	bool canRetry = false;
+	bool canRestart = false;
+	bool remoteEnded = false;
 	bool inSession = false;
+	int retries = 0;
+	QString remoteId;
 };
 
 class Coordinator : public QObject {
@@ -66,6 +70,7 @@ public:
 	void start(const QString &title);
 	void stop();
 	void retry(const QString &id);
+	void restartTarget(const QString &id);
 	void finalizeRecovered();
 	void acknowledge();
 	void discardRecovered();
@@ -89,6 +94,8 @@ private:
 		QString message;
 		std::optional<PreparedSession> session;
 		bool inSession = false;
+		bool remoteEnded = false;
+		int retries = 0;
 		int closeAttempts = 0;
 	};
 
@@ -110,6 +117,8 @@ private:
 	void scheduleCloseRetry(const QString &id);
 	void finishStopping();
 	void abandon(const QString &id, const PreparedSession &session);
+	void checkRemoteAfterFailure(const QString &id);
+	void startTargetOutput(const QString &id);
 	void updateSleepInhibitor();
 
 	MediaEngine *engine_;
@@ -121,6 +130,7 @@ private:
 	QString sessionUuid_;
 	QDateTime liveSince_;
 	int generation_ = 0;
+	int restartCounter_ = 0;
 	bool outputsStopped_ = false;
 	QTimer phaseTimer_;
 	QTimer inspectTimer_;

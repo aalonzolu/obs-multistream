@@ -230,6 +230,8 @@ void Coordinator::start(const QString &title)
 		target.inSession = false;
 		target.session.reset();
 		target.closeAttempts = 0;
+		target.remoteEnded = false;
+		target.retries = 0;
 		if (Settings::shared().selected(id))
 			selected.push_back(id);
 	}
@@ -402,6 +404,7 @@ void Coordinator::afterPrepare(int generation)
 
 void Coordinator::startOutputs()
 {
+	engine_->setReconnectPolicy({Settings::shared().reconnectRetries(), Settings::shared().reconnectDelaySeconds()});
 	liveSince_ = QDateTime::currentDateTime();
 	setState(SessionState::Live, QStringLiteral("Conectando con las plataformas…"));
 	Journal::shared().setSessionState(sessionUuid_, QStringLiteral("LIVE"));
@@ -443,7 +446,8 @@ void Coordinator::onTransport(const QString &id, Transport transport)
 		if (target.state == TargetState::Failed)
 			break;
 		target.state = TargetState::Failed;
-		target.message = QStringLiteral("%1 perdió la conexión. %2").arg(target.provider->displayName(), engine_->lastError(id));
+		target.message = QStringLiteral("%1 perdió la conexión y no pudo recuperarla. %2").arg(target.provider->displayName(), engine_->lastError(id));
+		checkRemoteAfterFailure(id);
 		break;
 	case Transport::Connecting:
 		target.state = TargetState::Connecting;
@@ -506,7 +510,8 @@ void Coordinator::inspectAll()
 					current.session->publicUrl = result.value->publicUrl;
 			} else if (result.value->verification == Verification::Ended) {
 				current.state = TargetState::Failed;
-				current.message = QStringLiteral("%1 terminó la emisión de su lado.").arg(current.provider->displayName());
+				current.remoteEnded = true;
+				current.message = QStringLiteral("%1 terminó el directo de su lado. Podés crear uno nuevo solo en este destino.").arg(current.provider->displayName());
 				engine_->stopTarget(id);
 			}
 			persist(id);
@@ -528,15 +533,88 @@ void Coordinator::retry(const QString &id)
 	if ((state_ != SessionState::Live && state_ != SessionState::Partial) || !target.session ||
 	    target.state != TargetState::Failed)
 		return;
-	QString error;
+	if (target.remoteEnded)
+		return;
+	++target.retries;
 	target.state = TargetState::Connecting;
 	target.message.clear();
+	startTargetOutput(id);
+}
+
+void Coordinator::startTargetOutput(const QString &id)
+{
+	Target &target = at(id);
+	QString error;
 	if (!engine_->startTarget({id, target.session->server, target.session->key}, &error)) {
 		target.state = TargetState::Failed;
 		target.message = error;
 	}
 	persist(id);
 	recomputeLiveState();
+}
+
+void Coordinator::checkRemoteAfterFailure(const QString &id)
+{
+	Target &target = at(id);
+	if (!target.session)
+		return;
+	const int generation = generation_;
+	target.provider->inspect(*target.session, [this, generation, id](Result<RemoteStatus> result) {
+		if (generation != generation_ || !result.ok())
+			return;
+		Target &current = at(id);
+		if (current.state != TargetState::Failed || result.value->verification != Verification::Ended)
+			return;
+		current.remoteEnded = true;
+		current.message = QStringLiteral("%1 cerró el directo después del corte. Podés crear uno nuevo solo en este destino.")
+					  .arg(current.provider->displayName());
+		persist(id);
+		emit changed();
+	});
+}
+
+void Coordinator::restartTarget(const QString &id)
+{
+	auto found = targets_.find(id);
+	if (found == targets_.end() || (state_ != SessionState::Live && state_ != SessionState::Partial))
+		return;
+	Target &target = found->second;
+	if (!target.inSession || target.state != TargetState::Failed)
+		return;
+
+	if (target.session)
+		abandon(id, *target.session);
+	target.session.reset();
+	target.remoteEnded = false;
+	target.retries = 0;
+	target.state = TargetState::Preparing;
+	target.message = QStringLiteral("Creando un directo nuevo en %1…").arg(target.provider->displayName());
+	recomputeLiveState();
+
+	const int generation = generation_;
+	const StartIntent intent{QStringLiteral("%1:r%2").arg(sessionUuid_).arg(++restartCounter_), title_};
+	target.provider->prepare(intent, [this, generation, id](Result<PreparedSession> result) {
+		const bool current = generation == generation_ &&
+				     (state_ == SessionState::Live || state_ == SessionState::Partial) &&
+				     at(id).state == TargetState::Preparing;
+		if (!current) {
+			if (result.ok())
+				abandon(id, *result.value);
+			return;
+		}
+		Target &target = at(id);
+		if (!result.ok()) {
+			target.state = stateForError(result.error);
+			target.message = result.error.message;
+			persist(id);
+			recomputeLiveState();
+			return;
+		}
+		target.session = *result.value;
+		target.state = TargetState::Connecting;
+		target.message.clear();
+		startTargetOutput(id);
+	});
 }
 
 void Coordinator::stop()
@@ -762,9 +840,13 @@ TargetView Coordinator::target(const QString &id) const
 	view.publicUrl = target.session ? target.session->publicUrl : QString();
 	view.stats = engine_->stats(id);
 	view.inSession = target.inSession;
-	view.canRetry = (target.state == TargetState::Failed && target.session &&
-			 (state_ == SessionState::Live || state_ == SessionState::Partial)) ||
+	const bool live = state_ == SessionState::Live || state_ == SessionState::Partial;
+	view.canRetry = (target.state == TargetState::Failed && target.session && live && !target.remoteEnded) ||
 			target.state == TargetState::ClosePending;
+	view.canRestart = target.state == TargetState::Failed && target.inSession && live;
+	view.remoteEnded = target.remoteEnded;
+	view.retries = target.retries;
+	view.remoteId = target.session ? target.session->remoteId : QString();
 	return view;
 }
 
@@ -782,6 +864,11 @@ QJsonObject Coordinator::snapshot() const
 			{QStringLiteral("public_url"), view.publicUrl},
 			{QStringLiteral("in_session"), view.inSession},
 			{QStringLiteral("can_retry"), view.canRetry},
+			{QStringLiteral("can_restart"), view.canRestart},
+			{QStringLiteral("remote_ended"), view.remoteEnded},
+			{QStringLiteral("retries"), view.retries},
+			{QStringLiteral("remote_id"), view.remoteId},
+			{QStringLiteral("transport"), transportName(engine_->transport(view.id))},
 			{QStringLiteral("bytes"), static_cast<qint64>(view.stats.totalBytes)},
 			{QStringLiteral("dropped_frames"), view.stats.droppedFrames},
 		});

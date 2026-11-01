@@ -7,9 +7,6 @@ namespace multistream {
 
 namespace {
 
-constexpr int kReconnectRetries = 10;
-constexpr int kReconnectDelaySeconds = 3;
-
 QString stopCodeMessage(int code)
 {
 	switch (code) {
@@ -53,7 +50,8 @@ QString transportName(Transport transport)
 	return QStringLiteral("unknown");
 }
 
-OutputRuntime::OutputRuntime(const IngestTarget &target, obs_encoder_t *video, obs_encoder_t *audio, QObject *parent)
+OutputRuntime::OutputRuntime(const IngestTarget &target, const ReconnectPolicy &policy, obs_encoder_t *video,
+			     obs_encoder_t *audio, QObject *parent)
 	: QObject(parent),
 	  id_(target.id)
 {
@@ -72,7 +70,7 @@ OutputRuntime::OutputRuntime(const IngestTarget &target, obs_encoder_t *video, o
 	obs_output_set_video_encoder(output_, video);
 	obs_output_set_audio_encoder(output_, audio, 0);
 	obs_output_set_service(output_, service_);
-	obs_output_set_reconnect_settings(output_, kReconnectRetries, kReconnectDelaySeconds);
+	obs_output_set_reconnect_settings(output_, policy.retries, policy.delaySeconds);
 
 	signal_handler_t *handler = obs_output_get_signal_handler(output_);
 	signals_.emplace_back(handler, "start", &OutputRuntime::handleStart, this);

@@ -14,6 +14,9 @@ public:
 	QString profileId() const;
 	void setProfileId(const QString &id);
 	QString videoEncoder() const;
+	int reconnectRetries() const;
+	int reconnectDelaySeconds() const;
+	void setReconnect(int retries, int delaySeconds);
 	void setVideoEncoder(const QString &id);
 
 	bool selected(const QString &provider) const;

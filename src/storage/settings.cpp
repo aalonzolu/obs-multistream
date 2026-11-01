@@ -64,6 +64,23 @@ void Settings::setVideoEncoder(const QString &id)
 	save();
 }
 
+int Settings::reconnectRetries() const
+{
+	return root_.value(QStringLiteral("reconnect_retries")).toInt(10);
+}
+
+int Settings::reconnectDelaySeconds() const
+{
+	return root_.value(QStringLiteral("reconnect_delay_seconds")).toInt(3);
+}
+
+void Settings::setReconnect(int retries, int delaySeconds)
+{
+	root_.insert(QStringLiteral("reconnect_retries"), retries);
+	root_.insert(QStringLiteral("reconnect_delay_seconds"), delaySeconds);
+	save();
+}
+
 bool Settings::selected(const QString &provider) const
 {
 	return this->provider(provider).value(kSelected).toBool(true);

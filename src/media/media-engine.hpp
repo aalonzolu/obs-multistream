@@ -19,6 +19,7 @@ public:
 	~MediaEngine() override;
 
 	bool prepareEncoders(const MediaProfile &profile, QString *error);
+	void setReconnectPolicy(const ReconnectPolicy &policy) { reconnectPolicy_ = policy; }
 	bool startTarget(const IngestTarget &target, QString *error);
 	void stopTarget(const QString &id);
 	void stopAll();
@@ -41,6 +42,7 @@ private:
 	void releaseIfIdle();
 
 	EncoderPool encoders_;
+	ReconnectPolicy reconnectPolicy_;
 	std::map<QString, std::unique_ptr<OutputRuntime>> outputs_;
 };
 

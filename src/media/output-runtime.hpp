@@ -27,11 +27,17 @@ struct IngestTarget {
 	QString key;
 };
 
+struct ReconnectPolicy {
+	int retries = 10;
+	int delaySeconds = 3;
+};
+
 class OutputRuntime : public QObject {
 	Q_OBJECT
 
 public:
-	OutputRuntime(const IngestTarget &target, obs_encoder_t *video, obs_encoder_t *audio, QObject *parent = nullptr);
+	OutputRuntime(const IngestTarget &target, const ReconnectPolicy &policy, obs_encoder_t *video, obs_encoder_t *audio,
+		      QObject *parent = nullptr);
 	~OutputRuntime() override;
 
 	bool start(QString *error);

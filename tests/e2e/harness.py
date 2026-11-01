@@ -46,6 +46,7 @@ def launch_obs(timeout: float = 60, dev_targets: bool = False) -> obs.ReqClient:
         try:
             client = obs.ReqClient(host="127.0.0.1", port=4455, password=(OUT / "ws-password").read_text(), timeout=10)
             client.get_scene_collection_list()
+            client.call_vendor_request(VENDOR, "GetStatus", {})
             return client
         except Exception:
             time.sleep(1)

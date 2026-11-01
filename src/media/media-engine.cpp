@@ -33,7 +33,7 @@ bool MediaEngine::startTarget(const IngestTarget &target, QString *error)
 		outputs_.erase(existing);
 	}
 
-	auto runtime = std::make_unique<OutputRuntime>(target, encoders_.video(), encoders_.audio());
+	auto runtime = std::make_unique<OutputRuntime>(target, reconnectPolicy_, encoders_.video(), encoders_.audio());
 	connect(runtime.get(), &OutputRuntime::transportChanged, this, &MediaEngine::onTransportChanged);
 	OutputRuntime *raw = runtime.get();
 	outputs_[target.id] = std::move(runtime);

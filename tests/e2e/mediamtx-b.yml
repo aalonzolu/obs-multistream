@@ -1,0 +1,13 @@
+logLevel: warn
+api: yes
+apiAddress: 127.0.0.1:9998
+rtmp: yes
+rtmpAddress: 127.0.0.1:1936
+rtmpEncryption: "no"
+rtsp: no
+hls: no
+webrtc: no
+srt: no
+moq: no
+paths:
+  all_others:

@@ -269,6 +269,11 @@ void Plugin::registerTestRequests()
 			Settings::shared().setProfileId(text(request, "profile"));
 		if (request.contains(QStringLiteral("video_encoder")))
 			Settings::shared().setVideoEncoder(text(request, "video_encoder"));
+		if (request.contains(QStringLiteral("reconnect"))) {
+			const QJsonObject reconnect = request.value(QStringLiteral("reconnect")).toObject();
+			Settings::shared().setReconnect(reconnect.value(QStringLiteral("retries")).toInt(10),
+							reconnect.value(QStringLiteral("delay_seconds")).toInt(3));
+		}
 		return success();
 	});
 
@@ -284,6 +289,11 @@ void Plugin::registerTestRequests()
 
 	vendor_.add(QStringLiteral("Retry"), [this](const QJsonObject &request) {
 		coordinator_->retry(text(request, "provider"));
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("RestartTarget"), [this](const QJsonObject &request) {
+		coordinator_->restartTarget(text(request, "provider"));
 		return success();
 	});
 

@@ -65,7 +65,10 @@ void LocalTestProvider::prepare(const StartIntent &, Callback<PreparedSession> d
 
 void LocalTestProvider::inspect(const PreparedSession &session, Callback<RemoteStatus> done)
 {
-	later([done, url = session.publicUrl] { done(Result<RemoteStatus>::success({Verification::LiveConfirmed, {}, url})); });
+	later([this, done, url = session.publicUrl] {
+		const bool ended = behavior_.value(QStringLiteral("inspect")).toString() == QStringLiteral("ended");
+		done(Result<RemoteStatus>::success({ended ? Verification::Ended : Verification::LiveConfirmed, {}, url}));
+	});
 }
 
 void LocalTestProvider::finalize(const PreparedSession &session, Callback<RemoteStatus> done)
