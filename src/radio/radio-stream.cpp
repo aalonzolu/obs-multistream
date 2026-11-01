@@ -5,7 +5,9 @@
 #include <QByteArray>
 #include <QUrl>
 
+#include <algorithm>
 #include <chrono>
+#include <vector>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -44,19 +46,35 @@ audio_format obsFormatFor(AVSampleFormat format)
 	}
 }
 
-AVSampleFormat pickSampleFormat(const AVCodecContext *context, const AVCodec *codec)
+std::vector<AVSampleFormat> supportedSampleFormats([[maybe_unused]] const AVCodecContext *context, const AVCodec *codec)
 {
+	std::vector<AVSampleFormat> formats;
+#if LIBAVCODEC_VERSION_INT >= AV_VERSION_INT(61, 13, 100)
 	const void *supported = nullptr;
 	int count = 0;
-	if (avcodec_get_supported_config(context, codec, AV_CODEC_CONFIG_SAMPLE_FORMAT, 0, &supported, &count) < 0 || !supported)
+	if (avcodec_get_supported_config(context, codec, AV_CODEC_CONFIG_SAMPLE_FORMAT, 0, &supported, &count) >= 0 &&
+	    supported) {
+		const auto *list = static_cast<const AVSampleFormat *>(supported);
+		formats.assign(list, list + count);
+	}
+#else
+	if (codec->sample_fmts) {
+		for (const AVSampleFormat *format = codec->sample_fmts; *format != AV_SAMPLE_FMT_NONE; ++format)
+			formats.push_back(*format);
+	}
+#endif
+	return formats;
+}
+
+AVSampleFormat pickSampleFormat(const AVCodecContext *context, const AVCodec *codec)
+{
+	const std::vector<AVSampleFormat> formats = supportedSampleFormats(context, codec);
+	if (formats.empty())
 		return AV_SAMPLE_FMT_FLTP;
-	const auto *formats = static_cast<const AVSampleFormat *>(supported);
 	for (AVSampleFormat preferred : {AV_SAMPLE_FMT_FLTP, AV_SAMPLE_FMT_FLT, AV_SAMPLE_FMT_S16P, AV_SAMPLE_FMT_S16,
 					 AV_SAMPLE_FMT_S32P, AV_SAMPLE_FMT_S32}) {
-		for (int i = 0; i < count; ++i) {
-			if (formats[i] == preferred)
-				return preferred;
-		}
+		if (std::find(formats.begin(), formats.end(), preferred) != formats.end())
+			return preferred;
 	}
 	return AV_SAMPLE_FMT_NONE;
 }

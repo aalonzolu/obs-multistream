@@ -164,7 +164,7 @@ void RadioDialog::fill(const radio::Config &config)
 
 void RadioDialog::refreshBitrates(int preferred)
 {
-	const radio::Format &format = radio::format(format_->currentData().toString());
+	const radio::Format format = radio::format(format_->currentData().toString());
 	{
 		const QSignalBlocker blocker(bitrate_);
 		bitrate_->clear();

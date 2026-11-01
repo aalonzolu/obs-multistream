@@ -232,7 +232,7 @@ void Coordinator::start(const QString &title, const QString &description)
 		target.closeAttempts = 0;
 		target.remoteEnded = false;
 		target.retries = 0;
-		if (Settings::shared().selected(id))
+		if (target.state != TargetState::Disconnected && Settings::shared().selected(id))
 			selected.push_back(id);
 	}
 	if (selected.empty()) {

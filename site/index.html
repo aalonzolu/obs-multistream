@@ -213,7 +213,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
       <dl class="details">
         <div><dt>Confirmación antes de cortar</dt><dd>Finalizar pide confirmación, y si la radio salió con el video, pregunta si también la detenés.</dd></div>
         <div><dt>Recuperación tras un cierre inesperado</dt><dd>Si OBS se cierra a la fuerza, al volver avisa que quedó una emisión abierta y la cierra en cada plataforma.</dd></div>
-        <div><dt>Sin claves a la vista</dt><dd>Las cuentas se autorizan en el navegador y las credenciales quedan en el llavero de macOS o el Administrador de credenciales de Windows.</dd></div>
+        <div><dt>Sin claves a la vista</dt><dd>Las cuentas se autorizan en el navegador y las credenciales quedan en el llavero de macOS, el Administrador de credenciales de Windows o el servicio de secretos de Linux.</dd></div>
         <div><dt>Un solo codificador</dt><dd>El mismo video codificado sirve para todos los destinos: la carga del equipo no se multiplica.</dd></div>
         <div><dt>Atajos de teclado</dt><dd>Transmitir y finalizar se asignan desde los atajos de OBS, como cualquier otra acción.</dd></div>
         <div><dt>Hecho para el tema de OBS</dt><dd>Respeta los temas claro y oscuro, se maneja con teclado y ningún estado depende solo del color.</dd></div>
@@ -226,8 +226,8 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
       <h2>Instalar</h2>
       <div class="install">
         <ol>
-          <li><strong>Descargá el paquete para tu sistema</strong><span>Desde <a href="https://github.com/aalonzolu/obs-multistream/releases/latest">la última versión</a> en GitHub: Windows (x64) o macOS (Intel y Apple Silicon).</span></li>
-          <li><strong>Copialo en la carpeta de plugins de OBS</strong><span>Windows: descomprimilo en <code>C:\ProgramData\obs-studio\plugins</code>. macOS: mové <code>obs-multistream.plugin</code> a <code>~/Library/Application Support/obs-studio/plugins</code> y quitale la cuarentena como indican <a href="https://github.com/aalonzolu/obs-multistream/releases/latest">las notas de la versión</a>.</span></li>
+          <li><strong>Descargá el paquete para tu sistema</strong><span>Desde <a href="https://github.com/aalonzolu/obs-multistream/releases/latest">la última versión</a> en GitHub: Windows (x64), macOS (Intel y Apple Silicon) o Linux (x64).</span></li>
+          <li><strong>Copialo en la carpeta de plugins de OBS</strong><span>Windows: descomprimilo en <code>C:\ProgramData\obs-studio\plugins</code>. macOS: mové <code>obs-multistream.plugin</code> a <code>~/Library/Application Support/obs-studio/plugins</code> y quitale la cuarentena como indican <a href="https://github.com/aalonzolu/obs-multistream/releases/latest">las notas de la versión</a>. Linux: descomprimilo en <code>~/.config/obs-studio/plugins</code>.</span></li>
           <li><strong>Abrí OBS y conectá tus cuentas</strong><span>Clic en cualquier ícono de la barra de estado y «Conectar» en cada plataforma.</span></li>
           <li><strong>Presioná «Iniciar transmisión»</strong><span>Elegí título y destinos, y salí al aire.</span></li>
         </ol>
@@ -235,7 +235,7 @@ footer .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; g
           <h3>Requisitos</h3>
           <ul>
             <li>OBS Studio 31 o más reciente.</li>
-            <li>Windows 10/11 de 64 bits o macOS 12 en adelante.</li>
+            <li>Windows 10/11 de 64 bits, macOS 12 en adelante o Linux de 64 bits con OBS fuera de Flatpak.</li>
             <li>Una página de Facebook, un canal de YouTube habilitado para transmitir y, para TikTok, una cuenta con acceso a LIVE vía Streamlabs.</li>
             <li>Para la radio: un servidor Icecast, AzuraCast o Liquidsoap.</li>
           </ul>

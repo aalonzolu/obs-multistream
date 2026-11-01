@@ -126,7 +126,9 @@ SessionController::StopChoice SessionController::confirmStop()
 	}
 	QMessageBox box(window_);
 	box.setObjectName(QStringLiteral("multistream-confirm-stop"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
 	box.setOption(QMessageBox::Option::DontUseNativeDialog);
+#endif
 	box.setIcon(QMessageBox::Question);
 	box.setWindowTitle(QStringLiteral("Finalizar transmisión"));
 	box.setText(QStringLiteral("¿Finalizar la transmisión?"));
@@ -226,7 +228,7 @@ void SessionController::runDiagnostics()
 	QStringList lines;
 	const QString encoder = preferredH264EncoderId();
 	lines << QStringLiteral("Codificador H.264: %1").arg(encoder.isEmpty() ? QStringLiteral("ninguno disponible") : encoder);
-	const MediaProfile &profile = mediaProfile(Settings::shared().profileId());
+	const MediaProfile profile = mediaProfile(Settings::shared().profileId());
 	int selectedCount = 0;
 	for (const TargetView &view : coordinator_->targets()) {
 		QString reason;

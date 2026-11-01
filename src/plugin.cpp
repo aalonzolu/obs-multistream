@@ -255,7 +255,9 @@ bool Plugin::confirmCloseWhileStreaming()
 	QMessageBox box(mainWindow_);
 	box.setIcon(QMessageBox::Warning);
 	box.setWindowTitle(QStringLiteral("Multistream"));
+#if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
 	box.setOption(QMessageBox::Option::DontUseNativeDialog);
+#endif
 	box.setText(radio_->active() && !coordinator_->streaming() ? QStringLiteral("La radio está al aire.")
 								   : QStringLiteral("Multistream está transmitiendo."));
 	box.setInformativeText(QStringLiteral("Si cerrás OBS, se detiene la señal en todos los destinos."));
