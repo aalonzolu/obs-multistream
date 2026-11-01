@@ -108,19 +108,43 @@ jobs:
 
       - name: Instalar dependencias
         run: |
-          sudo add-apt-repository -y ppa:obsproject/obs-studio
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
-            cmake ninja-build pkg-config build-essential rsync \
-            obs-studio libobs-dev \
+            cmake ninja-build pkg-config build-essential rsync git \
             qt6-base-dev qt6-base-private-dev qt6-svg-dev \
-            libcurl4-openssl-dev libsimde-dev \
-            libavcodec-dev libavformat-dev libavutil-dev libsecret-1-dev
+            libcurl4-openssl-dev libsimde-dev libjansson-dev zlib1g-dev uuid-dev \
+            libavcodec-dev libavformat-dev libavutil-dev libswscale-dev libswresample-dev \
+            libsecret-1-dev libx11-dev libx11-xcb-dev libxcb1-dev libxcb-xinput-dev \
+            libgl1-mesa-dev libegl-dev libwayland-dev libpci-dev libvpl-dev
+
+      - name: Versión de OBS
+        id: obs
+        run: echo "version=$(jq -r '.dependencies["obs-studio"].version' buildspec.json)" >> "$GITHUB_OUTPUT"
+
+      - name: Caché de libobs
+        id: obs-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/obs-sdk
+          key: obs-sdk-ubuntu-24.04-${{ steps.obs.outputs.version }}
+
+      - name: Compilar libobs
+        if: steps.obs-cache.outputs.cache-hit != 'true'
+        run: |
+          git clone --depth 1 --branch "${{ steps.obs.outputs.version }}" https://github.com/obsproject/obs-studio.git "$RUNNER_TEMP/obs-studio"
+          cmake -S "$RUNNER_TEMP/obs-studio" -B "$RUNNER_TEMP/obs-build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$HOME/obs-sdk" \
+            -DENABLE_UI=OFF -DENABLE_FRONTEND_API=ON -DENABLE_PLUGINS=OFF -DENABLE_SCRIPTING=OFF \
+            -DENABLE_WEBSOCKET=OFF -DENABLE_BROWSER=OFF -DENABLE_NEW_MPEGTS_OUTPUT=OFF -DENABLE_AJA=OFF \
+            -DENABLE_VLC=OFF -DENABLE_WAYLAND=OFF -DENABLE_PIPEWIRE=OFF
+          cmake --build "$RUNNER_TEMP/obs-build" --parallel
+          cmake --install "$RUNNER_TEMP/obs-build"
 
       - name: Configurar
         run: |
           cmake --preset ubuntu-ci-x86_64 \
             -DENABLE_CCACHE=OFF \
+            "-DCMAKE_PREFIX_PATH=$HOME/obs-sdk" \
             "-DMULTISTREAM_GOOGLE_CLIENT_ID=$MULTISTREAM_GOOGLE_CLIENT_ID" \
             "-DMULTISTREAM_GOOGLE_CLIENT_SECRET=$MULTISTREAM_GOOGLE_CLIENT_SECRET" \
             "-DMULTISTREAM_META_BROKER_URL=$MULTISTREAM_META_BROKER_URL"
