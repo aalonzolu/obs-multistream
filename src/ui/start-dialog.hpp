@@ -1,6 +1,7 @@
 #pragma once
 
 #include "orchestration/coordinator.hpp"
+#include "radio/radio-station.hpp"
 #include "storage/settings.hpp"
 
 #include <QDialog>
@@ -27,16 +28,19 @@ struct AccountActions {
 	std::function<void(const QString &)> connect;
 	std::function<void(const QString &)> chooseDestination;
 	std::function<bool(const QString &)> connecting;
+	std::function<void()> configureRadio;
 };
 
 class StartDialog : public QDialog {
 	Q_OBJECT
 
 public:
-	StartDialog(Coordinator *coordinator, AccountActions actions, QWidget *parent = nullptr);
+	StartDialog(Coordinator *coordinator, radio::Station *radio, AccountActions actions, QWidget *parent = nullptr);
 
 	QString renderedTitle() const;
 	QString renderedDescription() const;
+	bool videoSelected() const;
+	bool radioSelected() const;
 
 public slots:
 	void refreshDestinations();
@@ -69,9 +73,12 @@ private:
 	void newTemplate();
 	void startStreaming();
 	QString selectedTemplateId() const;
-	QString blockingReason(int selectedCount) const;
+	QString blockingReason(int videoCount, bool radioStarting) const;
+	void addRadioLine(QGridLayout *grid, int row, QWidget *panel);
+	void refreshRadio();
 
 	Coordinator *coordinator_;
+	radio::Station *radio_;
 	AccountActions actions_;
 	QList<StreamTemplate> templates_;
 	QListWidget *list_ = nullptr;
@@ -86,6 +93,10 @@ private:
 	QComboBox *youtubePrivacy_ = nullptr;
 	QComboBox *youtubeKids_ = nullptr;
 	QCheckBox *facebookHide_ = nullptr;
+	QCheckBox *radioCheck_ = nullptr;
+	ElidedLabel *radioIdentity_ = nullptr;
+	QLabel *radioNote_ = nullptr;
+	QPushButton *radioConfigure_ = nullptr;
 	QComboBox *profile_;
 	QLabel *upload_;
 	PrimaryAction *start_;

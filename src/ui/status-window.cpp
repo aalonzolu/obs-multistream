@@ -3,6 +3,7 @@
 #include "providers/provider.hpp"
 #include "ui/destination-row.hpp"
 #include "ui/presentation.hpp"
+#include "ui/radio-row.hpp"
 #include "ui/session-controller.hpp"
 #include "ui/status-pill.hpp"
 #include "ui/widgets.hpp"
@@ -11,6 +12,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
+#include <QPainterPath>
 #include <QPushButton>
 #include <QVBoxLayout>
 
@@ -32,9 +34,18 @@ protected:
 		painter.setPen(QPen(blend(colors.attention, colors.window, 0.55), 1.0));
 		painter.setBrush(blend(colors.attention, colors.window, 0.14));
 		painter.drawRoundedRect(bounds, 6, 6);
+		const QRectF mark(bounds.left() + 12, bounds.center().y() - 7, 16, 14);
+		QPainterPath triangle;
+		triangle.moveTo(mark.center().x(), mark.top());
+		triangle.lineTo(mark.right(), mark.bottom());
+		triangle.lineTo(mark.left(), mark.bottom());
+		triangle.closeSubpath();
 		painter.setPen(Qt::NoPen);
 		painter.setBrush(colors.attention);
-		painter.drawRoundedRect(QRectF(bounds.left(), bounds.top(), 4, bounds.height()), 2, 2);
+		painter.drawPath(triangle);
+		painter.setPen(QPen(colors.onAttention, 1.8, Qt::SolidLine, Qt::RoundCap));
+		painter.drawLine(QPointF(mark.center().x(), mark.top() + 5), QPointF(mark.center().x(), mark.bottom() - 4.5));
+		painter.drawPoint(QPointF(mark.center().x(), mark.bottom() - 2));
 	}
 };
 
@@ -54,6 +65,7 @@ StatusWindow::StatusWindow(SessionController *controller, QWidget *parent)
 	  coordinator_(controller->coordinator()),
 	  session_(new StatusPill(StatusPill::Size::Prominent, this)),
 	  title_(new ElidedLabel(this)),
+	  radioRow_(new RadioRow(controller->radio(), this)),
 	  notice_(new NoticeFrame(this)),
 	  noticeText_(new QLabel(notice_)),
 	  noticePrimary_(new QPushButton(notice_)),
@@ -94,6 +106,10 @@ StatusWindow::StatusWindow(SessionController *controller, QWidget *parent)
 		connect(row, &DestinationRow::restartRequested, coordinator_, &Coordinator::restartTarget);
 		connect(row, &DestinationRow::openRequested, this, [](const QString &url) { openInBrowser(url); });
 	}
+	rows->addWidget(divider(this));
+	rows->addWidget(radioRow_);
+	connect(radioRow_, &RadioRow::configureRequested, controller_, &SessionController::openRadioSettings);
+	connect(controller_->radio(), &radio::Station::changed, this, &StatusWindow::render);
 
 	noticeText_->setWordWrap(true);
 	noticeText_->setTextFormat(Qt::PlainText);
@@ -101,7 +117,7 @@ StatusWindow::StatusWindow(SessionController *controller, QWidget *parent)
 	noticePrimary_->setAutoDefault(false);
 	noticeSecondary_->setAutoDefault(false);
 	auto *noticeLayout = new QHBoxLayout(notice_);
-	noticeLayout->setContentsMargins(16, 10, 10, 10);
+	noticeLayout->setContentsMargins(38, 10, 10, 10);
 	noticeLayout->setSpacing(8);
 	noticeLayout->addWidget(noticeText_, 1);
 	noticeLayout->addWidget(noticeSecondary_);
@@ -155,6 +171,7 @@ void StatusWindow::render()
 	const bool locked = state != SessionState::Idle && state != SessionState::Attention;
 	for (const TargetView &view : targets)
 		rows_.at(view.id)->render(view, locked, controller_->connecting(view.id));
+	radioRow_->render();
 
 	const bool recovered = !coordinator_->recovered().isEmpty();
 	Presentation session = presentationFor(state, targets, recovered);

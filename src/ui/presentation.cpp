@@ -78,6 +78,37 @@ Presentation presentationFor(SessionState state, const QList<TargetView> &target
 	return {Tone::Idle, {}};
 }
 
+Presentation presentationFor(const radio::Station &station)
+{
+	switch (station.state()) {
+	case radio::RadioState::Off:
+		return station.config().configured() ? Presentation{Tone::Ready, QStringLiteral("Lista")}
+						     : Presentation{Tone::Idle, QStringLiteral("Sin configurar")};
+	case radio::RadioState::Connecting:
+		return {Tone::Busy, QStringLiteral("Conectando")};
+	case radio::RadioState::OnAir:
+		return {Tone::Live, QStringLiteral("Al aire")};
+	case radio::RadioState::Reconnecting:
+		return {Tone::Busy, QStringLiteral("Reconectando")};
+	case radio::RadioState::Failed:
+		return {Tone::Attention, QStringLiteral("Revisar")};
+	}
+	return {Tone::Idle, {}};
+}
+
+QString radioDetails(const radio::Station &station)
+{
+	const radio::Config config = station.config();
+	QStringList lines;
+	lines << QStringLiteral("Radio · %1").arg(config.endpoint());
+	lines << QStringLiteral("%1 · pista %2 · %3").arg(config.summary()).arg(config.track).arg(config.channels == 1 ? QStringLiteral("mono") : QStringLiteral("estéreo"));
+	if (station.bytesSent() > 0)
+		lines << QStringLiteral("Enviado: %1 MB · Reconexiones: %2").arg(static_cast<double>(station.bytesSent()) / 1e6, 0, 'f', 1).arg(station.reconnects());
+	if (!station.message().isEmpty())
+		lines << station.message();
+	return lines.join(QLatin1Char('\n'));
+}
+
 QString technicalDetails(const TargetView &view)
 {
 	QStringList lines;

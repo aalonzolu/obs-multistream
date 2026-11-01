@@ -1,7 +1,9 @@
 import json
 import logging
+import shutil
 import subprocess
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 import obsws_python as obs
@@ -26,6 +28,28 @@ def check(condition: bool, message: str):
     if not condition:
         raise Failed(message)
     print(f"  ✓ {message}", flush=True)
+
+
+CONFIG = Path.home() / "Library/Application Support/obs-studio/plugin_config/obs-multistream"
+
+
+@contextmanager
+def preserved_config():
+    quit_obs()
+    backup = OUT / "config-backup"
+    shutil.rmtree(backup, ignore_errors=True)
+    shutil.copytree(CONFIG, backup)
+    try:
+        yield
+    finally:
+        try:
+            quit_obs()
+        except Failed:
+            subprocess.run(["pkill", "-9", "-x", "OBS"], check=False)
+            time.sleep(2)
+        shutil.rmtree(CONFIG)
+        shutil.copytree(backup, CONFIG)
+        print("  · configuración real restaurada")
 
 
 def obs_running() -> bool:

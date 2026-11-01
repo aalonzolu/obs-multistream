@@ -28,6 +28,7 @@ public slots:
 
 private:
 	void openDestinationMenu(DestinationBadge *badge);
+	void openRadioMenu();
 	void openSettingsMenu();
 	QAction *popupAbove(QMenu &menu, QWidget *anchor);
 
@@ -35,6 +36,7 @@ private:
 	Coordinator *coordinator_;
 	StatusPill *session_;
 	std::map<QString, DestinationBadge *> badges_;
+	DestinationBadge *radio_;
 	QToolButton *settings_;
 	QTimer ticker_;
 };

@@ -1,13 +1,13 @@
 # Contrato observado: Streamlabs → TikTok LIVE
 
-**Estado:** observado en código de terceros; **no** es una API pública ni estable. Se valida con respuestas reales en la Fase 1 (`spike/tiktok/`).
+**Estado:** observado en código de terceros; **no** es una API pública ni estable. Validado con respuestas reales; lo implementa `src/providers/tiktok-streamlabs.cpp`.
 
 | Fuente | Commit |
 |---|---|
 | Loukious/StreamLabsTikTokStreamKeyGenerator (`TokenRetriever.py`, `Stream.py`, GUI) — GPL-3.0 | `ef03fb23cb1680eb47e9598850509ce22e218600` |
 | Loukious/obs-multi-rtmp (`src/streamlabs-api.cpp`, `src/push-widget.cpp`) — GPL-2.0 | `4518eca86c596c549aa8d75101f1a92bc00811a4` |
 
-No se copió código de ninguno de los dos. El spike reimplementa el protocolo a partir de este documento.
+No se copió código de ninguno de los dos. El plugin reimplementa el protocolo a partir de este documento.
 
 ## 1. Login
 
@@ -92,7 +92,7 @@ Ambas referencias envían el `User-Agent` de Streamlabs Desktop sobre Electron (
 
 ## 7. Respuestas observadas
 
-**2026-10-31, cuenta Streamlabs Free, sin acceso LIVE** (`spike/tiktok/out/fixtures/`):
+**2026-10-31, cuenta Streamlabs Free, sin acceso LIVE:**
 
 - Callback: `http://127.0.0.1:{puerto}/?code=…&success=true`. Path `/`, host `127.0.0.1`.
 - `auth/data` devuelve mucho más que `oauth_token`: `token` (250 car.), `platform_token` (token de TikTok, 72 car.), `api_token.{access_token, refresh_token}` (1105 y 898 car.), `email`, `platform_id`, `first_time_user`. **El cliente solo debe conservar `oauth_token` y descartar el resto en memoria.**
@@ -100,7 +100,7 @@ Ambas referencias envían el `User-Agent` de Streamlabs Desktop sobre Electron (
 - `tiktok/info` sin categoría: `platform`, `info: []`, `reason: 0`, `user.username`, `application_status.{status, timestamp}`, `audience_controls_info.{disable, info_type, types[].{key, label}}`, `can_be_live`. No incluye `categories`.
 - Valor observado de `application_status.status`: `never_applied`.
 
-## 8. Incógnitas que resuelve el spike
+## 8. Preguntas abiertas
 
 1. ~~Host y path reales del callback.~~ Resuelto: `127.0.0.1`, `/`.
 2. Duración del `oauth_token` y la respuesta cuando vence.

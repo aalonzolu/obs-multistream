@@ -16,6 +16,7 @@ namespace multistream::ui {
 class DestinationRow;
 class ElidedLabel;
 class PrimaryAction;
+class RadioRow;
 class SessionController;
 class StatusPill;
 
@@ -38,6 +39,7 @@ private:
 	StatusPill *session_;
 	ElidedLabel *title_;
 	std::map<QString, DestinationRow *> rows_;
+	RadioRow *radioRow_;
 	QFrame *notice_;
 	QLabel *noticeText_;
 	QPushButton *noticePrimary_;

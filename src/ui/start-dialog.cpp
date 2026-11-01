@@ -19,7 +19,6 @@
 #include <QPushButton>
 #include <QShortcut>
 #include <QStyledItemDelegate>
-#include <QTimeZone>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -36,10 +35,10 @@ constexpr int kUsedRole = Qt::UserRole + 3;
 
 QString usedLabel(const QString &iso)
 {
-	const QDateTime used = QDateTime::fromString(iso, Qt::ISODateWithMs).toTimeZone(QTimeZone("America/Guatemala"));
+	const QDateTime used = QDateTime::fromString(iso, Qt::ISODateWithMs).toLocalTime();
 	if (!used.isValid())
 		return {};
-	const QDate today = QDateTime::currentDateTime().toTimeZone(QTimeZone("America/Guatemala")).date();
+	const QDate today = QDate::currentDate();
 	if (used.date() == today)
 		return QStringLiteral("Hoy %1").arg(used.toString(QStringLiteral("HH:mm")));
 	if (used.date() == today.addDays(-1))
@@ -121,9 +120,10 @@ QLabel *mutedLabel(QWidget *parent)
 
 } // namespace
 
-StartDialog::StartDialog(Coordinator *coordinator, AccountActions actions, QWidget *parent)
+StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, AccountActions actions, QWidget *parent)
 	: QDialog(parent),
 	  coordinator_(coordinator),
+	  radio_(radio),
 	  actions_(std::move(actions)),
 	  title_(new QLineEdit(this)),
 	  titleCount_(mutedLabel(this)),
@@ -139,7 +139,7 @@ StartDialog::StartDialog(Coordinator *coordinator, AccountActions actions, QWidg
 	setMinimumSize(880, 560);
 
 	title_->setMaxLength(kTitleLimit);
-	title_->setPlaceholderText(QStringLiteral("Culto dominical · {fecha}"));
+	title_->setPlaceholderText(QStringLiteral("Transmisión en vivo · {fecha}"));
 	title_->setAccessibleName(QStringLiteral("Título"));
 	title_->setClearButtonEnabled(true);
 	auto *insertDate = new QToolButton(this);
@@ -357,9 +357,79 @@ QWidget *StartDialog::buildDestinations()
 		});
 		++row;
 	}
+	if (radio_)
+		addRadioLine(grid, row, panel);
 	grid->setColumnStretch(3, 1);
 	grid->setColumnStretch(4, 2);
 	return panel;
+}
+
+void StartDialog::addRadioLine(QGridLayout *grid, int row, QWidget *panel)
+{
+	radioCheck_ = new QCheckBox(panel);
+	radioCheck_->setAccessibleName(QStringLiteral("Transmitir en la radio"));
+	auto *name = new QLabel(QStringLiteral("Radio"), panel);
+	QFont font = name->font();
+	font.setWeight(QFont::DemiBold);
+	name->setFont(font);
+	name->setBuddy(radioCheck_);
+	radioIdentity_ = new ElidedLabel(panel);
+	radioIdentity_->setForegroundRole(QPalette::PlaceholderText);
+	radioIdentity_->setAlignment(Qt::AlignVCenter | Qt::AlignLeft);
+	radioIdentity_->setMinimumWidth(90);
+	auto *options = new QWidget(panel);
+	auto *layout = new QHBoxLayout(options);
+	layout->setContentsMargins(0, 0, 0, 0);
+	layout->setSpacing(6);
+	radioNote_ = mutedLabel(options);
+	radioNote_->setTextFormat(Qt::PlainText);
+	radioConfigure_ = new QPushButton(QStringLiteral("Configurar…"), options);
+	radioConfigure_->setAutoDefault(false);
+	layout->addWidget(radioNote_, 1);
+	layout->addWidget(radioConfigure_);
+	grid->addWidget(radioCheck_, row, 0);
+	grid->addWidget(new BrandMark(QStringLiteral("radio"), panel), row, 1);
+	grid->addWidget(name, row, 2);
+	grid->addWidget(radioIdentity_, row, 3);
+	grid->addWidget(options, row, 4);
+	connect(radioCheck_, &QCheckBox::toggled, this, [this](bool on) {
+		Settings::shared().setSelected(QStringLiteral("radio"), on);
+		refresh();
+	});
+	connect(radioConfigure_, &QPushButton::clicked, this, [this] {
+		if (actions_.configureRadio)
+			actions_.configureRadio();
+		refreshRadio();
+	});
+	connect(radio_, &radio::Station::changed, this, &StartDialog::refreshRadio);
+}
+
+void StartDialog::refreshRadio()
+{
+	if (!radioCheck_)
+		return;
+	const radio::Config config = radio_->config();
+	const bool configured = config.configured();
+	const bool active = radio_->active();
+	{
+		const QSignalBlocker blocker(radioCheck_);
+		radioCheck_->setChecked(active || (configured && Settings::shared().selected(QStringLiteral("radio"))));
+	}
+	radioCheck_->setEnabled(configured && !active);
+	radioIdentity_->setFullText(configured ? config.endpoint() : QStringLiteral("Sin servidor configurado"));
+	radioNote_->setText(active ? QStringLiteral("Ya está al aire") : configured ? config.summary() : QString());
+	radioConfigure_->setVisible(!active);
+	refresh();
+}
+
+bool StartDialog::videoSelected() const
+{
+	return std::any_of(destinations_.begin(), destinations_.end(), [](const auto &entry) { return entry.second.check->isChecked(); });
+}
+
+bool StartDialog::radioSelected() const
+{
+	return radioCheck_ && radioCheck_->isChecked() && radioCheck_->isEnabled();
 }
 
 void StartDialog::refreshDestinations()
@@ -409,6 +479,7 @@ void StartDialog::refreshDestinations()
 		line.fix->setAccessibleName(QStringLiteral("%1 %2").arg(labels.value(line.fixKind), view.name));
 		line.fix->setVisible(line.fixKind != Fix::None);
 	}
+	refreshRadio();
 	refresh();
 }
 
@@ -537,14 +608,14 @@ QString StartDialog::renderedDescription() const
 	return renderTemplateText(description_->toPlainText());
 }
 
-QString StartDialog::blockingReason(int selectedCount) const
+QString StartDialog::blockingReason(int videoCount, bool radioStarting) const
 {
-	if (!coordinator_->recovered().isEmpty())
+	if (videoCount > 0 && !coordinator_->recovered().isEmpty())
 		return QStringLiteral("Cerrá antes la emisión anterior");
 	if (renderedTitle().isEmpty())
 		return QStringLiteral("Falta el título");
-	if (selectedCount == 0)
-		return QStringLiteral("Elegí al menos un destino");
+	if (videoCount == 0 && !radioStarting)
+		return radio_ && radio_->active() ? QStringLiteral("La radio ya está al aire") : QStringLiteral("Elegí al menos un destino");
 	const auto youtube = destinations_.find(QStringLiteral("youtube"));
 	if (youtube != destinations_.end() && youtube->second.check->isChecked() && youtubeKids_ &&
 	    youtubeKids_->currentData().toString().isEmpty())
@@ -590,17 +661,25 @@ void StartDialog::refresh()
 	save_->setEnabled(!raw.trimmed().isEmpty() && (selectedId.isEmpty() || modified));
 	remove_->setEnabled(!selectedId.isEmpty());
 
+	const bool radioStarting = radioSelected();
+	const radio::Format &radioFormat = radio::format(radio_ ? radio_->config().formatId : QString());
+	const int radioKbps = !radioStarting ? 0 : radioFormat.bitrates.isEmpty() ? 900 : radio_->config().bitrateKbps;
 	const MediaProfile &profile = mediaProfile(profile_->currentData().toString());
-	const double mbps = std::max(1, selected) * (profile.videoBitrateKbps + profile.audioBitrateKbps) / 1000.0;
-	upload_->setText(QStringLiteral("≈ %1 Mbps de subida").arg(mbps, 0, 'f', 1));
-	upload_->setToolTip(QStringLiteral("%1 destino(s) × %2 kbps de video y audio, sin contar overhead.")
-				    .arg(std::max(1, selected))
-				    .arg(profile.videoBitrateKbps + profile.audioBitrateKbps));
+	const int videoKbps = selected * (profile.videoBitrateKbps + profile.audioBitrateKbps);
+	upload_->setText(QStringLiteral("≈ %1 Mbps de subida").arg((videoKbps + radioKbps) / 1000.0, 0, 'f', 1));
+	upload_->setToolTip(QStringLiteral("%1 destino(s) de video × %2 kbps, más %3 kbps de radio, sin contar overhead.")
+				    .arg(selected)
+				    .arg(profile.videoBitrateKbps + profile.audioBitrateKbps)
+				    .arg(radioKbps));
+	profile_->setEnabled(selected > 0);
 
-	const QString reason = blockingReason(selected);
+	if (radioStarting)
+		names << QStringLiteral("la radio");
+	const int total = selected + (radioStarting ? 1 : 0);
+	const QString reason = blockingReason(selected, radioStarting);
 	QString caption = reason;
 	if (reason.isEmpty())
-		caption = selected == 1 ? QStringLiteral("en %1").arg(names.first()) : QStringLiteral("en %1 destinos").arg(selected);
+		caption = total == 1 ? QStringLiteral("en %1").arg(names.first()) : QStringLiteral("en %1 destinos").arg(total);
 	start_->present(PrimaryAction::Kind::Go, QStringLiteral("Transmitir"), caption, reason.isEmpty());
 }
 

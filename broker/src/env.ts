@@ -6,4 +6,7 @@ export interface Env {
   META_GRAPH_VERSION: string;
   PUBLIC_BASE_URL: string;
   CACHE_ENCRYPTION_KEY: string;
+  OPERATOR_NAME?: string;
+  CONTACT_EMAIL?: string;
+  SOURCE_URL?: string;
 }

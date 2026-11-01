@@ -95,6 +95,7 @@ StatusStrip::StatusStrip(SessionController *controller, QWidget *parent)
 	  controller_(controller),
 	  coordinator_(controller->coordinator()),
 	  session_(new StatusPill(StatusPill::Size::Compact, this)),
+	  radio_(new DestinationBadge(QStringLiteral("radio"), this)),
 	  settings_(new QToolButton(this))
 {
 	session_->setClickable(true);
@@ -118,6 +119,11 @@ StatusStrip::StatusStrip(SessionController *controller, QWidget *parent)
 		connect(badge, &DestinationBadge::clicked, controller_, &SessionController::openStatusWindow);
 		connect(badge, &DestinationBadge::customContextMenuRequested, this, [this, badge] { openDestinationMenu(badge); });
 	}
+	layout->addWidget(radio_);
+	radio_->setContextMenuPolicy(Qt::CustomContextMenu);
+	connect(radio_, &DestinationBadge::clicked, controller_, &SessionController::openStatusWindow);
+	connect(radio_, &DestinationBadge::customContextMenuRequested, this, &StatusStrip::openRadioMenu);
+	connect(controller_->radio(), &radio::Station::changed, this, &StatusStrip::render);
 	layout->addSpacing(2);
 	layout->addWidget(settings_);
 
@@ -163,6 +169,39 @@ void StatusStrip::render()
 		badge->setToolTip(tip);
 		badge->setAccessibleName(QStringLiteral("%1: %2").arg(view.name, presentation.label));
 	}
+
+	const radio::Station *station = controller_->radio();
+	const Presentation radioState = presentationFor(*station);
+	const bool radioOnAir = station->state() == radio::RadioState::OnAir;
+	const bool radioAlone = radioOnAir && state == SessionState::Idle;
+	radio_->present(radioState.tone, radioAlone ? clock(station->onAirSince()) : radioState.label,
+			radioState.tone == Tone::Attention || radioAlone, radioOnAir);
+	radio_->setVisible(station->config().configured() || station->active());
+	QString radioTip = QStringLiteral("Radio · %1\n%2").arg(station->config().endpoint(), radioState.label);
+	if (!station->message().isEmpty() && radioState.tone != Tone::Live)
+		radioTip += QStringLiteral("\n%1").arg(station->message());
+	radio_->setToolTip(radioTip + QStringLiteral("\n\nClic: estado. Clic derecho: iniciar, detener o configurar."));
+	radio_->setAccessibleName(QStringLiteral("Radio: %1").arg(radioState.label));
+	if (radioOnAir && !ticker_.isActive())
+		ticker_.start();
+}
+
+void StatusStrip::openRadioMenu()
+{
+	radio::Station *station = controller_->radio();
+	const radio::Config config = station->config();
+	const Presentation presentation = presentationFor(*station);
+	QMenu menu(this);
+	MenuActions actions(menu);
+	addHeader(menu, QStringLiteral("Radio"),
+		  config.configured() ? QStringLiteral("%1 · %2").arg(config.endpoint(), presentation.label) : presentation.label,
+		  presentation.tone == Tone::Attention ? station->message() : QString());
+	if (config.configured())
+		actions.add(station->active() ? QStringLiteral("Detener la radio") : QStringLiteral("Iniciar la radio"),
+			    [this] { controller_->toggleRadio(); });
+	actions.add(QStringLiteral("Configurar radio…"), [this] { controller_->openRadioSettings(); });
+	actions.add(QStringLiteral("Copiar detalles técnicos"), [station] { QApplication::clipboard()->setText(radioDetails(*station)); });
+	actions.run(popupAbove(menu, radio_));
 }
 
 QAction *StatusStrip::popupAbove(QMenu &menu, QWidget *anchor)
@@ -223,6 +262,9 @@ void StatusStrip::openSettingsMenu()
 	actions.add(live ? QStringLiteral("Finalizar transmisión…") : QStringLiteral("Transmitir…"), [this] { controller_->toggleStreaming(); },
 		    state != SessionState::Stopping && state != SessionState::Checking && state != SessionState::Preparing);
 	actions.add(QStringLiteral("Estado de la transmisión…"), [this] { controller_->openStatusWindow(); });
+	actions.add(controller_->radio()->active() ? QStringLiteral("Detener la radio") : QStringLiteral("Iniciar la radio"),
+		    [this] { controller_->toggleRadio(); }, controller_->radio()->config().configured());
+	actions.add(QStringLiteral("Configurar radio…"), [this] { controller_->openRadioSettings(); });
 	menu.addSeparator();
 	QAction *replace = actions.add(QStringLiteral("Iniciar desde el botón de OBS"), {});
 	replace->setCheckable(true);

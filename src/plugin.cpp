@@ -5,6 +5,7 @@
 #include "providers/meta-broker.hpp"
 #include "providers/tiktok-streamlabs.hpp"
 #include "providers/youtube.hpp"
+#include "radio/radio-config.hpp"
 #include "storage/settings.hpp"
 #include "ui/session-controller.hpp"
 #include "ui/status-strip.hpp"
@@ -69,7 +70,10 @@ Plugin *Plugin::instance()
 	return gPlugin;
 }
 
-Plugin::Plugin() : engine_(new MediaEngine(this)), coordinator_(new Coordinator(engine_, this))
+Plugin::Plugin()
+	: engine_(new MediaEngine(this)),
+	  coordinator_(new Coordinator(engine_, this)),
+	  radio_(new radio::Station(this))
 {
 	qRegisterMetaType<multistream::Transport>();
 
@@ -99,7 +103,7 @@ Plugin::Plugin() : engine_(new MediaEngine(this)), coordinator_(new Coordinator(
 	}
 
 	mainWindow_ = static_cast<QMainWindow *>(obs_frontend_get_main_window());
-	controller_ = new ui::SessionController(coordinator_, mainWindow_, this);
+	controller_ = new ui::SessionController(coordinator_, radio_, mainWindow_, this);
 	if (mainWindow_)
 		mainWindow_->installEventFilter(this);
 
@@ -187,6 +191,7 @@ void Plugin::onFinishedLoading()
 void Plugin::onExit()
 {
 	delete streamButton_;
+	radio_->stop();
 	if (strip_ && mainWindow_)
 		mainWindow_->statusBar()->removeWidget(strip_);
 	delete strip_;
@@ -216,9 +221,16 @@ void Plugin::takeOverStreamButton()
 
 bool Plugin::eventFilter(QObject *watched, QEvent *event)
 {
-	if (watched == mainWindow_ && event->type() == QEvent::Close && !closeApproved_ && coordinator_->streaming()) {
+	const bool onAir = coordinator_->streaming() || radio_->active();
+	if (watched == mainWindow_ && event->type() == QEvent::Close && !closeApproved_ && onAir) {
 		event->ignore();
 		if (confirmCloseWhileStreaming()) {
+			radio_->stop();
+			if (!coordinator_->streaming()) {
+				closeApproved_ = true;
+				QTimer::singleShot(0, mainWindow_, &QMainWindow::close);
+				return true;
+			}
 			connect(coordinator_, &Coordinator::changed, this, [this] {
 				if (!coordinator_->streaming() && !closeApproved_) {
 					closeApproved_ = true;
@@ -243,7 +255,9 @@ bool Plugin::confirmCloseWhileStreaming()
 	QMessageBox box(mainWindow_);
 	box.setIcon(QMessageBox::Warning);
 	box.setWindowTitle(QStringLiteral("Multistream"));
-	box.setText(QStringLiteral("Multistream está transmitiendo."));
+	box.setOption(QMessageBox::Option::DontUseNativeDialog);
+	box.setText(radio_->active() && !coordinator_->streaming() ? QStringLiteral("La radio está al aire.")
+								   : QStringLiteral("Multistream está transmitiendo."));
 	box.setInformativeText(QStringLiteral("Si cerrás OBS, se detiene la señal en todos los destinos."));
 	QPushButton *finish = box.addButton(QStringLiteral("Finalizar y salir"), QMessageBox::DestructiveRole);
 	box.addButton(QStringLiteral("Seguir transmitiendo"), QMessageBox::RejectRole);
@@ -423,6 +437,67 @@ void Plugin::registerTestRequests()
 
 	if (qEnvironmentVariableIsSet("MULTISTREAM_AUTOMATION"))
 		registerCaptureRequests();
+
+	vendor_.add(QStringLiteral("RadioConfigure"), [this](const QJsonObject &request) {
+		radio::Config config = radio::load();
+		if (request.value(QStringLiteral("from_butt")).toBool()) {
+			QString error;
+			const auto imported = radio::importFromButt(&error);
+			if (!imported)
+				return failure(error);
+			config = imported->config;
+			if (!radio::savePassword(imported->password, &error))
+				return failure(error);
+		}
+		const QJsonObject overrides = request.value(QStringLiteral("config")).toObject();
+		config.host = overrides.value(QStringLiteral("host")).toString(config.host);
+		config.port = overrides.value(QStringLiteral("port")).toInt(config.port);
+		config.mount = overrides.value(QStringLiteral("mount")).toString(config.mount);
+		config.user = overrides.value(QStringLiteral("user")).toString(config.user);
+		config.legacySource = overrides.value(QStringLiteral("legacy_source")).toBool(config.legacySource);
+		config.formatId = overrides.value(QStringLiteral("format")).toString(config.formatId);
+		config.bitrateKbps = overrides.value(QStringLiteral("bitrate")).toInt(config.bitrateKbps);
+		config.sampleRate = overrides.value(QStringLiteral("sample_rate")).toInt(config.sampleRate);
+		config.channels = overrides.value(QStringLiteral("channels")).toInt(config.channels);
+		config.track = overrides.value(QStringLiteral("track")).toInt(config.track);
+		config.stationName = overrides.value(QStringLiteral("station_name")).toString(config.stationName);
+		if (overrides.contains(QStringLiteral("password"))) {
+			QString error;
+			if (!radio::savePassword(overrides.value(QStringLiteral("password")).toString(), &error))
+				return failure(error);
+		}
+		radio::save(config);
+		radio_->reloadConfig();
+		return success({{QStringLiteral("endpoint"), config.endpoint()}, {QStringLiteral("summary"), config.summary()}});
+	});
+
+	vendor_.add(QStringLiteral("OpenRadioSettings"), [this](const QJsonObject &) {
+		QTimer::singleShot(0, controller_, &ui::SessionController::openRadioSettings);
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("RadioStart"), [this](const QJsonObject &request) {
+		radio_->start(text(request, "title"));
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("RadioStop"), [this](const QJsonObject &) {
+		radio_->stop();
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("RadioStatus"), [this](const QJsonObject &) {
+		static const QStringList names = {QStringLiteral("off"), QStringLiteral("connecting"), QStringLiteral("on_air"),
+						  QStringLiteral("reconnecting"), QStringLiteral("failed")};
+		const radio::Config config = radio_->config();
+		return success({{QStringLiteral("state"), names.value(static_cast<int>(radio_->state()))},
+				{QStringLiteral("message"), radio_->message()},
+				{QStringLiteral("bytes"), static_cast<double>(radio_->bytesSent())},
+				{QStringLiteral("reconnects"), radio_->reconnects()},
+				{QStringLiteral("legacy_source"), config.legacySource},
+				{QStringLiteral("endpoint"), config.endpoint()},
+				{QStringLiteral("summary"), config.summary()}});
+	});
 
 	vendor_.add(QStringLiteral("Retry"), [this](const QJsonObject &request) {
 		coordinator_->retry(text(request, "provider"));

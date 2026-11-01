@@ -1,12 +1,12 @@
 # Manual de Multistream
 
-Multistream transmite lo que tenés en OBS a Facebook, YouTube y TikTok a la vez, con un solo botón. No hace falta copiar claves RTMP: cada plataforma se conecta una vez con su cuenta y el plugin crea los directos por vos.
+Multistream transmite lo que tenés en OBS a Facebook, YouTube, TikTok y una radio Icecast a la vez, con un solo botón. No hace falta copiar claves RTMP: cada plataforma se conecta una vez con su cuenta y el plugin crea los directos por vos.
 
 > Las capturas usan cuentas de demostración.
 
 ## 1. Dónde está
 
-Multistream vive en la **barra de estado de OBS**, abajo a la izquierda: un ícono por plataforma y un engranaje.
+Multistream vive en la **barra de estado de OBS**, abajo a la izquierda: un ícono por plataforma, el de la radio (si está configurada) y un engranaje.
 
 ![Barra de estado con los tres destinos listos](capturas/01-barra-lista.png)
 
@@ -41,7 +41,7 @@ Presioná **Iniciar transmisión** en los controles de OBS. En lugar de salir di
 1. **Recientes** (izquierda): cada transmisión queda guardada. Elegí una y se completan título y descripción. **Guardar cambios** actualiza la que tenés seleccionada; **Nueva** empieza en blanco.
 2. **Título**: `+ Fecha` y `+ Hora` insertan `{fecha}` y `{hora}`, que se reemplazan al transmitir. Debajo ves cómo se va a publicar.
 3. **Descripción**: se publica en YouTube y Facebook.
-4. **Destinos**: marcá dónde transmitir. Cada uno tiene sus opciones en la misma fila:
+4. **Destinos**: marcá dónde transmitir, incluida la radio. Cada uno tiene sus opciones en la misma fila:
    - YouTube: visibilidad y si el contenido es para niños (YouTube lo exige; no se elige por vos).
    - Facebook: **Privado al terminar** deja el video en la página pero visible solo para administradores.
    - TikTok: muestra solo los primeros 32 caracteres del título; si lo recorta, te avisa.
@@ -86,16 +86,30 @@ Presioná **Finalizar transmisión**. Multistream pide confirmación para evitar
 
 Al confirmar, cierra el directo en cada plataforma. Si alguna no responde, queda en **Cierre pendiente** con **Reintentar cierre**.
 
-## 7. Si OBS se cerró a la fuerza
+## 7. Radio
+
+Multistream puede reemplazar a BUTT u otro programa de radio: envía el audio de OBS a un servidor Icecast (también AzuraCast o Liquidsoap), sola o junto con el video.
+
+![Configuración de la radio](capturas/10-configurar-radio.png)
+
+1. En el engranaje, **Configurar radio…**. Si en el equipo hay una configuración de BUTT, **Importar desde BUTT** copia servidor, contraseña, formato y datos de la estación.
+2. **Formato**: MP3 (el más compatible), AAC (mejor calidad con la misma velocidad), Opus (la mejor calidad por kbps), Vorbis o FLAC (sin pérdida). Si tu servidor vuelve a codificar, como AzuraCast, conviene enviar en alta calidad: AAC 256 o Opus 192.
+3. **Pista**: la pista de audio de OBS que se envía. Usá otra pista si querés una mezcla distinta para la radio.
+4. La contraseña se guarda en el llavero de macOS o en el Administrador de credenciales de Windows.
+
+Para salir al aire, marcá **Radio** en la ventana Transmitir, o usá clic derecho en el ícono de la radio → **Iniciar la radio** para transmitir solo audio. La radio es independiente: si finalizás el video, la confirmación pregunta si también querés detener la radio. Si se corta la conexión, reconecta sola; si el servidor rechaza la contraseña, lo avisa y no insiste.
+
+## 8. Si OBS se cerró a la fuerza
 
 Al volver a abrir OBS, la barra muestra **Emisión sin cerrar**. Abrí la ventana de estado y elegí **Cerrarla ahora**. Hasta resolverla no se puede iniciar otra transmisión.
 
-## 8. Opciones
+## 9. Opciones
 
 El engranaje de la barra tiene:
 
 - **Transmitir… / Finalizar transmisión…**
 - **Estado de la transmisión…**
+- **Iniciar / Detener la radio** y **Configurar radio…**
 - **Iniciar desde el botón de OBS**: desmarcalo si querés que «Iniciar transmisión» vuelva a usar el servicio configurado en OBS.
 - **Comprobar configuración…**: codificador, cuentas conectadas y subida necesaria.
 

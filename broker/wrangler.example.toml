@@ -1,0 +1,24 @@
+name = "obs-multistream-broker"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[vars]
+META_GRAPH_VERSION = "v23.0"
+META_APP_ID = "<id de tu app de Meta>"
+META_LOGIN_CONFIG_ID = "<id de la configuración de Facebook Login for Business>"
+PUBLIC_BASE_URL = "https://<tu-worker>.workers.dev"
+OPERATOR_NAME = "<quién opera el servicio>"
+CONTACT_EMAIL = "<correo de contacto para las páginas de privacidad>"
+SOURCE_URL = "https://github.com/<usuario>/obs-multistream"
+
+[observability]
+enabled = false
+
+[triggers]
+crons = ["*/30 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "obs-multistream-broker"
+database_id = "<id de la base D1>"

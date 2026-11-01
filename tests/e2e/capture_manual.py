@@ -1,27 +1,27 @@
-import shutil
 import subprocess
 import sys
 import time
 from datetime import datetime
-from pathlib import Path
-from zoneinfo import ZoneInfo
 
 import requests
 
-from harness import (ROOT, Failed, check, ensure_test_scene, launch_obs, quit_obs, session, targets, vendor, wait_for,
-                     wait_state)
+from harness import (CONFIG, ROOT, Failed, check, ensure_test_scene, launch_obs, preserved_config, targets, vendor,
+                     wait_for, wait_state)
 
 CAPTURES = ROOT.parent.parent / "docs" / "manual" / "capturas"
-CONFIG = Path.home() / "Library/Application Support/obs-studio/plugin_config/obs-multistream"
-BACKUP = ROOT / "out" / "config-backup"
 DESTINATIONS = ["facebook", "youtube", "tiktok"]
 API_B = "http://127.0.0.1:9998"
+RADIO_RECEIVER = "http://127.0.0.1:8010"
 
 TEMPLATES = [
-    ("Estudio bíblico · {fecha}", "Estudio del libro de Juan, capítulo 3."),
-    ("Reunión de jóvenes · {fecha}", "Alabanza y palabra para jóvenes. ¡Te esperamos!"),
-    ("Culto dominical · {fecha}", "Culto de adoración en vivo desde Mi página."),
+    ("Ensayo general · {fecha}", "Prueba de cámaras y sonido."),
+    ("Conferencia · {fecha}", "Charla y preguntas del público."),
+    ("Transmisión en vivo · {fecha}", "En vivo desde nuestro auditorio. ¡Gracias por acompañarnos!"),
 ]
+
+RADIO_EXAMPLE = {"host": "radio.ejemplo.com", "port": 8000, "mount": "/en-vivo", "user": "source", "password": "ejemplo",
+                 "format": "aac", "bitrate": 192, "sample_rate": 48000, "channels": 2, "track": 1,
+                 "station_name": "Radio de ejemplo"}
 
 
 def snap(client, name: str, target: str, crop: dict | None = None):
@@ -50,53 +50,42 @@ def modal(client) -> str:
     return vendor(client, "GetModal")["name"]
 
 
-def close_obs():
+def background(*command) -> subprocess.Popen:
+    return subprocess.Popen(list(command), cwd=ROOT / "out", stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def alive(url: str, method: str = "GET") -> bool:
     try:
-        quit_obs()
-    except Failed:
-        subprocess.run(["pkill", "-x", "OBS"], check=False)
-        wait_for(lambda: subprocess.run(["pgrep", "-xq", "OBS"]).returncode != 0, 15)
-
-
-def receiver_b() -> subprocess.Popen:
-    process = subprocess.Popen(["mediamtx", str(ROOT / "mediamtx-b.yml")], cwd=ROOT / "out",
-                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    def alive():
-        try:
-            return requests.get(f"{API_B}/v3/paths/list", timeout=2).ok
-        except requests.RequestException:
-            return False
-
-    wait_for(alive, 10)
-    return process
+        return requests.request(method, url, timeout=2).ok
+    except requests.RequestException:
+        return False
 
 
 def today_title() -> str:
-    return "Culto dominical · " + datetime.now(ZoneInfo("America/Guatemala")).strftime("%d/%m/%Y")
+    return "Transmisión en vivo · " + datetime.now().strftime("%d/%m/%Y")
 
 
 def main() -> int:
-    quit_obs()
-    shutil.rmtree(BACKUP, ignore_errors=True)
-    shutil.copytree(CONFIG, BACKUP)
     CAPTURES.mkdir(parents=True, exist_ok=True)
-    tiktok_receiver = receiver_b()
-    try:
-        return capture(tiktok_receiver)
-    finally:
-        tiktok_receiver.terminate()
-        close_obs()
-        shutil.rmtree(CONFIG)
-        shutil.copytree(BACKUP, CONFIG)
-        print("  · configuración real restaurada")
+    for old in CAPTURES.glob("*.png"):
+        old.unlink()
+    with preserved_config():
+        (CONFIG / "journal.json").unlink(missing_ok=True)
+        tiktok_receiver = background("mediamtx", str(ROOT / "mediamtx-b.yml"))
+        radio_receiver = background(sys.executable, str(ROOT / "icecast_receiver.py"), "8010")
+        try:
+            wait_for(lambda: alive(f"{API_B}/v3/paths/list"), 10)
+            wait_for(lambda: alive(f"{RADIO_RECEIVER}/state", "CONTROL"), 10)
+            return capture(tiktok_receiver)
+        finally:
+            tiktok_receiver.terminate()
+            radio_receiver.terminate()
 
 
 def capture(tiktok_receiver: subprocess.Popen) -> int:
-    (CONFIG / "journal.json").unlink(missing_ok=True)
     client = launch_obs(demo=True)
     ensure_test_scene(client)
-    vendor(client, "SetSelected", {"selection": {d: True for d in DESTINATIONS}})
+    vendor(client, "SetSelected", {"selection": {**{d: True for d in DESTINATIONS}, "radio": True}})
     vendor(client, "SetOptions", {
         "profile": "balanced",
         "reconnect": {"retries": 2, "delay_seconds": 1},
@@ -108,6 +97,7 @@ def capture(tiktok_receiver: subprocess.Popen) -> int:
     vendor(client, "DevSetBehavior", {"provider": "tiktok", "behavior": {"port": 1936}})
     for title, description in TEMPLATES:
         vendor(client, "DevRemember", {"title": title, "description": description})
+    vendor(client, "RadioConfigure", {"config": RADIO_EXAMPLE})
 
     print("\n1. Antes de transmitir")
     status_bar(client, "01-barra-lista")
@@ -116,15 +106,23 @@ def capture(tiktok_receiver: subprocess.Popen) -> int:
     snap(client, "02-ventana-transmitir", "modal")
     vendor(client, "DismissModal")
     wait_for(lambda: modal(client) == "", 5)
+    vendor(client, "OpenRadioSettings")
+    check(wait_for(lambda: modal(client) == "multistream-radio", 5), "se abre la configuración de la radio")
+    snap(client, "10-configurar-radio", "modal")
+    vendor(client, "DismissModal")
+    wait_for(lambda: modal(client) == "", 5)
     vendor(client, "OpenStatusWindow")
     time.sleep(1)
     snap(client, "03-estado-listo", "status-window")
 
     print("\n2. Al aire")
+    vendor(client, "RadioConfigure", {"config": {**RADIO_EXAMPLE, "host": "localhost", "port": 8010}})
+    requests.request("CONTROL", f"{RADIO_RECEIVER}/set", json={"user": "source", "password": "ejemplo"}, timeout=5)
     vendor(client, "Start", {"title": today_title(), "description": TEMPLATES[2][1]})
+    vendor(client, "RadioStart", {"title": today_title()})
     check(wait_state(client, "live", 30), "la sesión sale al aire")
     check(wait_for(lambda: all(targets(client)[d]["state"] == "LIVE_CONFIRMED" for d in DESTINATIONS), 30), "los tres confirman")
-    wait_for(lambda: all(targets(client)[d].get("stats", {}).get("total_bytes", 1) > 0 for d in DESTINATIONS), 10)
+    check(wait_for(lambda: vendor(client, "RadioStatus")["state"] == "on_air", 15), "la radio sale al aire")
     time.sleep(6)
     status_bar(client, "04-barra-al-aire")
     snap(client, "05-estado-al-aire", "status-window")
@@ -147,6 +145,7 @@ def capture(tiktok_receiver: subprocess.Popen) -> int:
     vendor(client, "DismissModal")
     wait_for(lambda: modal(client) == "", 5)
     vendor(client, "Stop")
+    vendor(client, "RadioStop")
     check(wait_state(client, {"idle", "attention"}, 30), "la sesión termina")
     print(f"\nCapturas en {CAPTURES}")
     return 0

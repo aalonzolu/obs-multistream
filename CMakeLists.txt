@@ -28,6 +28,13 @@ target_link_libraries(
   PRIVATE OBS::libobs OBS::obs-frontend-api Qt6::Core Qt6::Widgets Qt6::Network
 )
 
+find_path(MULTISTREAM_FFMPEG_INCLUDE_DIR libavformat/avformat.h REQUIRED)
+foreach(_ffmpeg_component IN ITEMS avcodec avformat avutil)
+  find_library(MULTISTREAM_${_ffmpeg_component}_LIBRARY NAMES ${_ffmpeg_component} REQUIRED)
+  target_link_libraries(${CMAKE_PROJECT_NAME} PRIVATE "${MULTISTREAM_${_ffmpeg_component}_LIBRARY}")
+endforeach()
+target_include_directories(${CMAKE_PROJECT_NAME} SYSTEM PRIVATE "${MULTISTREAM_FFMPEG_INCLUDE_DIR}")
+
 target_compile_options(
   ${CMAKE_PROJECT_NAME}
   PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-quoted-include-in-framework-header -Wno-comma>
@@ -73,6 +80,12 @@ target_sources(
     src/providers/tiktok-streamlabs.hpp
     src/providers/youtube.cpp
     src/providers/youtube.hpp
+    src/radio/radio-config.cpp
+    src/radio/radio-config.hpp
+    src/radio/radio-station.cpp
+    src/radio/radio-station.hpp
+    src/radio/radio-stream.cpp
+    src/radio/radio-stream.hpp
     src/security/pkce.cpp
     src/security/pkce.hpp
     src/security/secret-store.hpp
@@ -94,6 +107,10 @@ target_sources(
     src/ui/palette.hpp
     src/ui/presentation.cpp
     src/ui/presentation.hpp
+    src/ui/radio-dialog.cpp
+    src/ui/radio-dialog.hpp
+    src/ui/radio-row.cpp
+    src/ui/radio-row.hpp
     src/ui/session-controller.cpp
     src/ui/session-controller.hpp
     src/ui/start-dialog.cpp

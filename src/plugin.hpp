@@ -2,6 +2,7 @@
 
 #include "media/media-engine.hpp"
 #include "orchestration/coordinator.hpp"
+#include "radio/radio-station.hpp"
 #include "testing/websocket-vendor.hpp"
 
 #include <obs-frontend-api.h>
@@ -51,6 +52,7 @@ private:
 
 	MediaEngine *engine_ = nullptr;
 	Coordinator *coordinator_ = nullptr;
+	radio::Station *radio_ = nullptr;
 	ui::SessionController *controller_ = nullptr;
 	QPointer<ui::StatusStrip> strip_;
 	QPointer<QMainWindow> mainWindow_;

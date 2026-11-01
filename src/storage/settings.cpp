@@ -5,7 +5,6 @@
 
 #include <QDateTime>
 #include <QJsonArray>
-#include <QTimeZone>
 #include <QUuid>
 
 namespace multistream {
@@ -36,7 +35,7 @@ StreamTemplate fromJson(const QJsonObject &o)
 
 QString renderTemplateText(const QString &text)
 {
-	const QDateTime now = QDateTime::currentDateTime().toTimeZone(QTimeZone("America/Guatemala"));
+	const QDateTime now = QDateTime::currentDateTime();
 	QString rendered = text;
 	rendered.replace(QStringLiteral("{fecha}"), now.toString(QStringLiteral("dd/MM/yyyy")));
 	rendered.replace(QStringLiteral("{hora}"), now.toString(QStringLiteral("HH:mm")));

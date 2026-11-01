@@ -1,7 +1,11 @@
 import { constantTimeEqual, randomToken, seal, sha256Base64Url, unseal } from "./crypto";
 import type { Env } from "./env";
 import { Graph, type GraphError } from "./graph";
-import { dataDeletionPage, homePage, privacyPage, resultPage, termsPage } from "./pages";
+import { dataDeletionPage, homePage, privacyPage, resultPage, termsPage, type Operator } from "./pages";
+
+function operatorOf(env: Env): Operator {
+  return { name: env.OPERATOR_NAME, contact: env.CONTACT_EMAIL, source: env.SOURCE_URL };
+}
 
 const TRANSACTION_TTL_MS = 5 * 60 * 1000;
 const OPERATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -319,10 +323,10 @@ async function route(request: Request, env: Env): Promise<Response> {
   const method = request.method;
 
   if (method === "GET" && path === "/health") return json({ ok: true, version: VERSION, graph: env.META_GRAPH_VERSION });
-  if (method === "GET" && path === "/") return html(homePage());
-  if (method === "GET" && path === "/privacy") return html(privacyPage(env.PUBLIC_BASE_URL));
-  if (method === "GET" && path === "/terms") return html(termsPage());
-  if (method === "GET" && path === "/data-deletion") return html(dataDeletionPage());
+  if (method === "GET" && path === "/") return html(homePage(operatorOf(env)));
+  if (method === "GET" && path === "/privacy") return html(privacyPage(env.PUBLIC_BASE_URL, operatorOf(env)));
+  if (method === "GET" && path === "/terms") return html(termsPage(operatorOf(env)));
+  if (method === "GET" && path === "/data-deletion") return html(dataDeletionPage(operatorOf(env)));
   if (method === "GET" && path === "/v1/auth/meta/callback") return completeCallback(url, env);
   if (method !== "POST") throw new HttpError(404, "NOT_FOUND", "Ruta desconocida.");
 

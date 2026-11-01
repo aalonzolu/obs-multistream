@@ -3,9 +3,11 @@
 #include "media/media-profile.hpp"
 #include "storage/settings.hpp"
 #include "ui/presentation.hpp"
+#include "ui/radio-dialog.hpp"
 #include "ui/start-dialog.hpp"
 #include "ui/status-window.hpp"
 
+#include <QCheckBox>
 #include <QInputDialog>
 #include <QLocale>
 #include <QMessageBox>
@@ -13,9 +15,10 @@
 
 namespace multistream::ui {
 
-SessionController::SessionController(Coordinator *coordinator, QWidget *window, QObject *parent)
+SessionController::SessionController(Coordinator *coordinator, radio::Station *radio, QWidget *window, QObject *parent)
 	: QObject(parent),
 	  coordinator_(coordinator),
+	  radio_(radio),
 	  window_(window)
 {
 }
@@ -43,10 +46,14 @@ void SessionController::toggleStreaming()
 		coordinator_->stop();
 		break;
 	case SessionState::Live:
-	case SessionState::Partial:
-		if (confirmStop())
+	case SessionState::Partial: {
+		const StopChoice choice = confirmStop();
+		if (choice.stop)
 			coordinator_->stop();
+		if (choice.stopRadio)
+			radio_->stop();
 		break;
+	}
 	case SessionState::Stopping:
 		break;
 	}
@@ -61,13 +68,42 @@ void SessionController::openStartWindow()
 		[this](const QString &id) { connectProvider(id); },
 		[this](const QString &id) { chooseDestination(id); },
 		[this](const QString &id) { return connecting(id); },
+		[this] { openRadioSettings(); },
 	};
-	StartDialog dialog(coordinator_, std::move(actions), window_);
+	StartDialog dialog(coordinator_, radio_, std::move(actions), window_);
 	connect(this, &SessionController::connectionsChanged, &dialog, &StartDialog::refreshDestinations);
 	const bool accepted = dialog.exec() == QDialog::Accepted;
 	startWindowOpen_ = false;
-	if (accepted)
+	if (!accepted)
+		return;
+	const bool video = dialog.videoSelected();
+	if (video)
 		coordinator_->start(dialog.renderedTitle(), dialog.renderedDescription());
+	if (dialog.radioSelected() && !radio_->active()) {
+		radio_->start(dialog.renderedTitle());
+		radioStartedWithSession_ = video;
+	}
+}
+
+void SessionController::openRadioSettings()
+{
+	RadioDialog dialog(window_);
+	if (dialog.exec() == QDialog::Accepted)
+		radio_->reloadConfig();
+}
+
+void SessionController::toggleRadio()
+{
+	if (radio_->active()) {
+		radio_->stop();
+		return;
+	}
+	if (!radio_->config().configured()) {
+		openRadioSettings();
+		return;
+	}
+	radioStartedWithSession_ = false;
+	radio_->start(coordinator_->streaming() ? coordinator_->title() : radio_->title());
 }
 
 void SessionController::openStatusWindow()
@@ -81,7 +117,7 @@ void SessionController::openStatusWindow()
 	statusWindow_->activateWindow();
 }
 
-bool SessionController::confirmStop()
+SessionController::StopChoice SessionController::confirmStop()
 {
 	QStringList names;
 	for (const TargetView &view : coordinator_->targets()) {
@@ -100,12 +136,19 @@ bool SessionController::confirmStop()
 	QPushButton *keep = box.addButton(QStringLiteral("Seguir transmitiendo"), QMessageBox::RejectRole);
 	box.setDefaultButton(keep);
 	box.setEscapeButton(keep);
+	QCheckBox *alsoRadio = nullptr;
+	if (radio_->active()) {
+		alsoRadio = new QCheckBox(QStringLiteral("Detener también la radio"), &box);
+		alsoRadio->setChecked(radioStartedWithSession_);
+		box.setCheckBox(alsoRadio);
+	}
 	connect(coordinator_, &Coordinator::changed, &box, [this, &box] {
 		if (!coordinator_->streaming())
 			box.reject();
 	});
 	box.exec();
-	return box.clickedButton() == finish && coordinator_->streaming();
+	const bool stop = box.clickedButton() == finish && coordinator_->streaming();
+	return {stop, stop && alsoRadio && alsoRadio->isChecked()};
 }
 
 void SessionController::connectProvider(const QString &providerId)

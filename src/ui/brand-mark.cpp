@@ -93,6 +93,25 @@ void paintTikTok(QPainter &p, const QRectF &r, const QColor &outline)
 	p.drawPath(note);
 }
 
+void paintRadio(QPainter &p, const QRectF &r)
+{
+	p.setPen(Qt::NoPen);
+	p.setBrush(QColor(0xE8, 0x59, 0x0C));
+	p.drawRoundedRect(r, r.width() * 0.24, r.width() * 0.24);
+	const QPointF center = r.center();
+	const double s = r.width() / 18.0;
+	p.setBrush(Qt::white);
+	p.drawEllipse(center, 1.7 * s, 1.7 * s);
+	QPen wave(Qt::white, 1.4 * s, Qt::SolidLine, Qt::RoundCap);
+	p.setPen(wave);
+	p.setBrush(Qt::NoBrush);
+	for (double radius : {4.2 * s, 6.8 * s}) {
+		const QRectF arc(center.x() - radius, center.y() - radius, radius * 2, radius * 2);
+		p.drawArc(arc, -40 * 16, 80 * 16);
+		p.drawArc(arc, 140 * 16, 80 * 16);
+	}
+}
+
 } // namespace
 
 BrandMark::BrandMark(const QString &providerId, QWidget *parent) : QWidget(parent), providerId_(providerId)
@@ -117,6 +136,8 @@ void paintBrandMark(QPainter &painter, const QString &providerId, const QRectF &
 		paintYouTube(painter, r);
 	} else if (providerId == QStringLiteral("tiktok")) {
 		paintTikTok(painter, r, colorsFor(palette).line);
+	} else if (providerId == QStringLiteral("radio")) {
+		paintRadio(painter, r);
 	} else {
 		const Colors colors = colorsFor(palette);
 		painter.setPen(Qt::NoPen);
