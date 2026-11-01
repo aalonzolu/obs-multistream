@@ -21,6 +21,7 @@ Plugin para OBS Studio que transmite a Facebook, YouTube, TikTok y una radio Ice
 
 - macOS: `./scripts/build-macos.sh` y `./scripts/install-macos.sh` (con OBS cerrado).
 - Windows: `cmake --preset windows-x64` y `cmake --build --preset windows-x64`.
+- Linux: `./scripts/build-linux.sh` y `./scripts/install-linux.sh` (con OBS cerrado). Instala en `~/.config/obs-studio/plugins/obs-multistream`. Hace falta OBS Studio 31 o más reciente (no Flatpak, que no carga plugins externos), Qt 6 (base, base-private y svg), libcurl, libsimde, FFmpeg (libavcodec, libavformat y libavutil) y libsecret-1.
 
 Las credenciales de tus apps de Google y Meta van en `local-config.cmake` (fuera de git) o como `-D` al configurar:
 
