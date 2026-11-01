@@ -72,7 +72,8 @@ nav a:hover { color: var(--text); }
 .callout { position: absolute; left: clamp(12px, 4%, 48px); bottom: clamp(48px, 9%, 96px); width: min(46%, 420px); border-radius: 10px; overflow: hidden; border: 1px solid #3a3f4c; box-shadow: 0 18px 40px -16px rgba(0,0,0,.9); background: var(--deck); }
 .callout img { width: 100%; }
 
-section { padding: clamp(56px, 8vw, 104px) 0; border-top: 1px solid var(--rule); }
+section { padding: 64px 0; border-top: 1px solid var(--rule); }
+@media (min-width: 900px) { section { padding: 104px 0; } }
 section > .wrap > h2 { font-size: clamp(1.9rem, 3.6vw, 3rem); line-height: 1.08; font-weight: 800; max-width: 22ch; }
 section > .wrap > p.intro { margin-top: 16px; color: var(--muted); max-width: var(--measure); font-size: 1.12rem; }
 
@@ -85,7 +86,7 @@ section > .wrap > p.intro { margin-top: 16px; color: var(--muted); max-width: va
 .feature .copy li + li { margin-top: 6px; }
 .feature .copy strong { color: var(--text); font-weight: 600; }
 .feature figure { margin: 0; }
-.feature figure img { border-radius: 12px; border: 1px solid var(--rule); box-shadow: 0 24px 60px -28px rgba(0,0,0,.9); }
+.feature figure img { border-radius: 12px; border: 1px solid var(--rule); }
 .feature figure.tall img { max-width: 440px; margin-inline: auto; }
 
 .details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 36px 64px; margin: clamp(40px, 6vw, 64px) 0 0; }
