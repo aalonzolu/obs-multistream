@@ -32,17 +32,26 @@ def obs_running() -> bool:
     return subprocess.run(["pgrep", "-xq", "OBS"]).returncode == 0
 
 
-def launch_obs(timeout: float = 60, dev_targets: bool = False) -> obs.ReqClient:
+def launch_obs(timeout: float = 60, dev_targets: bool = False, demo: bool = False) -> obs.ReqClient:
     if not obs_running():
-        env = ["--env", "MULTISTREAM_DEV_TARGETS=1"] if dev_targets else []
+        sentinels = Path.home() / "Library/Application Support/obs-studio/.sentinel"
+        for marker in sentinels.glob("run_*"):
+            marker.unlink(missing_ok=True)
+        variables = {"MULTISTREAM_AUTOMATION": "1"}
+        if dev_targets:
+            variables["MULTISTREAM_DEV_TARGETS"] = "1"
+        if demo:
+            variables["MULTISTREAM_DEMO"] = "1"
+        env = [arg for key, value in variables.items() for arg in ("--env", f"{key}={value}")]
         subprocess.run(["open", "-a", "OBS", *env, "--args", "--disable-shutdown-check"], check=True)
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        subprocess.run(
-            ["osascript", "-e",
-             'tell application "System Events" to tell process "OBS" to click button "Run in Normal Mode" of group 1 of window 1'],
-            capture_output=True,
-        )
+        for container in ("group 1 of window 1", "window 1"):
+            subprocess.run(
+                ["osascript", "-e",
+                 f'tell application "System Events" to tell process "OBS" to click button "Run in Normal Mode" of {container}'],
+                capture_output=True,
+            )
         try:
             client = obs.ReqClient(host="127.0.0.1", port=4455, password=(OUT / "ws-password").read_text(), timeout=10)
             client.get_scene_collection_list()

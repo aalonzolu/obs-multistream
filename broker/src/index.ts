@@ -232,16 +232,17 @@ async function createLive(request: Request, env: Env): Promise<Response> {
   const cached = await env.DB.prepare("SELECT sealed_response FROM operations WHERE idempotency_key = ?").bind(key).first<{ sealed_response: string }>();
   if (cached) return json(await unseal(env.CACHE_ENCRYPTION_KEY, cached.sealed_response));
 
-  const payload = await body<{ page_token?: string; page_id?: string; title?: string }>(request);
+  const payload = await body<{ page_token?: string; page_id?: string; title?: string; description?: string }>(request);
   const token = requireString(payload.page_token, "page_token");
   const pageId = requireString(payload.page_id, "page_id");
   const title = (payload.title ?? "").slice(0, 254);
+  const description = (payload.description ?? "").slice(0, 5000);
   const graph = new Graph(env);
   const created = await graph.call<{ id: string; secure_stream_url?: string; stream_url?: string }>(
     "POST",
     `/${encodeURIComponent(pageId)}/live_videos`,
     token,
-    { status: "LIVE_NOW", title },
+    { status: "LIVE_NOW", title, ...(description ? { description } : {}) },
   );
   if (!created.ok) {
     console.log(JSON.stringify({ event: "create_live_failed", code: created.error?.code, subcode: created.error?.subcode, message: created.error?.message }));

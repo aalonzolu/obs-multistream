@@ -16,7 +16,12 @@ class QMainWindow;
 namespace multistream {
 
 class LocalTestProvider;
-class MultistreamDock;
+
+namespace ui {
+class SessionController;
+class StatusStrip;
+class StreamButtonBridge;
+} // namespace ui
 
 class Plugin : public QObject {
 	Q_OBJECT
@@ -36,16 +41,20 @@ private:
 	static void handleFrontendEvent(obs_frontend_event event, void *data);
 	static void handleSave(obs_data_t *data, bool saving, void *self);
 	void onFinishedLoading();
-	void revealDockOnFirstRun();
+	void installStatusStrip();
+	void takeOverStreamButton();
 	void onExit();
 	void registerHotkeys();
 	void registerTestRequests();
+	void registerCaptureRequests();
 	bool confirmCloseWhileStreaming();
 
 	MediaEngine *engine_ = nullptr;
 	Coordinator *coordinator_ = nullptr;
-	QPointer<MultistreamDock> dock_;
+	ui::SessionController *controller_ = nullptr;
+	QPointer<ui::StatusStrip> strip_;
 	QPointer<QMainWindow> mainWindow_;
+	QPointer<ui::StreamButtonBridge> streamButton_;
 	std::map<QString, LocalTestProvider *> localProviders_;
 	WebsocketVendor vendor_;
 	obs_hotkey_id startHotkey_ = OBS_INVALID_HOTKEY_ID;

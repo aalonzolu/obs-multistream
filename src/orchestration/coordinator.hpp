@@ -67,7 +67,7 @@ public:
 	Provider *provider(const QString &id) const;
 	QStringList providerIds() const { return QStringList(order_.begin(), order_.end()); }
 
-	void start(const QString &title);
+	void start(const QString &title, const QString &description = {});
 	void stop();
 	void retry(const QString &id);
 	void restartTarget(const QString &id);
@@ -78,6 +78,7 @@ public:
 	SessionState state() const { return state_; }
 	bool streaming() const;
 	QString message() const { return message_; }
+	QString title() const { return title_; }
 	QDateTime liveSince() const { return liveSince_; }
 	QList<TargetView> targets() const;
 	TargetView target(const QString &id) const;
@@ -127,6 +128,7 @@ private:
 	SessionState state_ = SessionState::Idle;
 	QString message_;
 	QString title_;
+	QString description_;
 	QString sessionUuid_;
 	QDateTime liveSince_;
 	int generation_ = 0;

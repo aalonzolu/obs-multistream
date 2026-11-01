@@ -13,6 +13,8 @@ LocalTestProvider::LocalTestProvider(QString id, QString name, QObject *parent)
 
 Account LocalTestProvider::account() const
 {
+	if (!identity_.isEmpty())
+		return {id_, identity_, id_, identity_};
 	return {id_, name_ + QStringLiteral(" (prueba local)"), id_, QStringLiteral("rtmp://127.0.0.1/live/") + id_};
 }
 

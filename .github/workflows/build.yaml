@@ -1,0 +1,100 @@
+name: Compilar
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+    paths:
+      - 'src/**'
+      - 'data/**'
+      - 'cmake/**'
+      - 'CMakeLists.txt'
+      - 'CMakePresets.json'
+      - 'buildspec.json'
+      - '.github/workflows/build.yaml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'CMakeLists.txt'
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  MULTISTREAM_GOOGLE_CLIENT_ID: ${{ secrets.MULTISTREAM_GOOGLE_CLIENT_ID }}
+  MULTISTREAM_GOOGLE_CLIENT_SECRET: ${{ secrets.MULTISTREAM_GOOGLE_CLIENT_SECRET }}
+  MULTISTREAM_META_BROKER_URL: ${{ vars.MULTISTREAM_META_BROKER_URL }}
+
+jobs:
+  windows:
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restaurar dependencias de OBS
+        uses: actions/cache@v4
+        with:
+          path: .deps
+          key: deps-windows-${{ hashFiles('buildspec.json') }}
+
+      - name: Configurar
+        shell: pwsh
+        run: |
+          cmake --preset windows-ci-x64 `
+            "-DMULTISTREAM_GOOGLE_CLIENT_ID=$env:MULTISTREAM_GOOGLE_CLIENT_ID" `
+            "-DMULTISTREAM_GOOGLE_CLIENT_SECRET=$env:MULTISTREAM_GOOGLE_CLIENT_SECRET" `
+            "-DMULTISTREAM_META_BROKER_URL=$env:MULTISTREAM_META_BROKER_URL"
+
+      - name: Compilar
+        shell: pwsh
+        run: cmake --build --preset windows-ci-x64 --parallel -- /consoleLoggerParameters:Summary /noLogo
+
+      - name: Empaquetar
+        shell: pwsh
+        run: cmake --install build_x64 --prefix release/obs-multistream --config RelWithDebInfo
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obs-multistream-windows-x64-${{ github.sha }}
+          path: release/obs-multistream
+          if-no-files-found: error
+
+  macos:
+    name: macOS universal
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restaurar dependencias de OBS
+        uses: actions/cache@v4
+        with:
+          path: .deps
+          key: deps-macos-${{ hashFiles('buildspec.json') }}
+
+      - name: Configurar
+        run: |
+          cmake --preset macos-ci \
+            -DENABLE_CCACHE=OFF \
+            "-DMULTISTREAM_GOOGLE_CLIENT_ID=$MULTISTREAM_GOOGLE_CLIENT_ID" \
+            "-DMULTISTREAM_GOOGLE_CLIENT_SECRET=$MULTISTREAM_GOOGLE_CLIENT_SECRET" \
+            "-DMULTISTREAM_META_BROKER_URL=$MULTISTREAM_META_BROKER_URL"
+
+      - name: Compilar
+        run: cmake --build --preset macos-ci --parallel
+
+      - name: Empaquetar
+        run: |
+          mkdir -p release
+          ditto build_macos/RelWithDebInfo/obs-multistream.plugin release/obs-multistream.plugin
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obs-multistream-macos-${{ github.sha }}
+          path: release
+          if-no-files-found: error

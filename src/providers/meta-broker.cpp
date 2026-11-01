@@ -267,7 +267,8 @@ void MetaBrokerProvider::prepare(const StartIntent &intent, Callback<PreparedSes
 	call(QStringLiteral("/v1/meta/live"),
 	     {{QStringLiteral("page_token"), pageToken()},
 	      {QStringLiteral("page_id"), account().destinationId},
-	      {QStringLiteral("title"), intent.title.left(capabilities().titleDisplayLimit)}},
+	      {QStringLiteral("title"), intent.title.left(capabilities().titleDisplayLimit)},
+	      {QStringLiteral("description"), intent.description}},
 	     true,
 	     [done](Result<QJsonObject> result) {
 		     if (!result.ok()) {

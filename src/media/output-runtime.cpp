@@ -1,6 +1,7 @@
 #include "media/output-runtime.hpp"
 
 #include <QMetaObject>
+#include <QThreadPool>
 #include <QPointer>
 
 namespace multistream {
@@ -27,6 +28,17 @@ QString stopCodeMessage(int code)
 	default:
 		return QStringLiteral("La salida terminó con un error (%1).").arg(code);
 	}
+}
+
+void stopOffInterfaceThread(obs_output_t *output)
+{
+	obs_output_t *held = obs_output_get_ref(output);
+	if (!held)
+		return;
+	QThreadPool::globalInstance()->start([held] {
+		obs_output_stop(held);
+		obs_output_release(held);
+	});
 }
 
 } // namespace
@@ -111,7 +123,7 @@ void OutputRuntime::stop()
 		return;
 	}
 	if (obs_output_active(output_))
-		obs_output_stop(output_);
+		stopOffInterfaceThread(output_);
 }
 
 bool OutputRuntime::busy() const
@@ -192,7 +204,7 @@ void OutputRuntime::apply(Transport transport, int stopCode, const QString &last
 	emit transportChanged(id_, transport);
 	if (transport == Transport::Sending && stopRequested_) {
 		stopRequested_ = false;
-		obs_output_stop(output_);
+		stopOffInterfaceThread(output_);
 	} else if (transport == Transport::Failed || transport == Transport::Stopped) {
 		stopRequested_ = false;
 	}

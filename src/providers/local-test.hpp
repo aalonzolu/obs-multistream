@@ -26,6 +26,7 @@ public:
 	void inspect(const PreparedSession &session, Callback<RemoteStatus> done) override;
 	void finalize(const PreparedSession &session, Callback<RemoteStatus> done) override;
 
+	void setIdentity(const QString &identity) { identity_ = identity; }
 	void setBehavior(const QJsonObject &behavior) { behavior_ = behavior; }
 	int finalizeCalls() const { return finalizeCalls_; }
 
@@ -35,6 +36,7 @@ private:
 
 	QString id_;
 	QString name_;
+	QString identity_;
 	QJsonObject behavior_;
 	int counter_ = 0;
 	int finalizeCalls_ = 0;

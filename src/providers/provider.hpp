@@ -21,6 +21,7 @@ struct Account {
 struct StartIntent {
 	QString sessionUuid;
 	QString title;
+	QString description;
 };
 
 struct PreparedSession {

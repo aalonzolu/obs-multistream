@@ -84,12 +84,30 @@ target_sources(
     src/storage/settings.hpp
     src/testing/websocket-vendor.cpp
     src/testing/websocket-vendor.hpp
-    src/ui/destination-card.cpp
-    src/ui/destination-card.hpp
-    src/ui/multistream-dock.cpp
-    src/ui/multistream-dock.hpp
-    src/ui/options-dialog.cpp
-    src/ui/options-dialog.hpp
+    src/ui/brand-mark.cpp
+    src/ui/brand-mark.hpp
+    src/ui/destination-badge.cpp
+    src/ui/destination-badge.hpp
+    src/ui/destination-row.cpp
+    src/ui/destination-row.hpp
+    src/ui/palette.cpp
+    src/ui/palette.hpp
+    src/ui/presentation.cpp
+    src/ui/presentation.hpp
+    src/ui/session-controller.cpp
+    src/ui/session-controller.hpp
+    src/ui/start-dialog.cpp
+    src/ui/start-dialog.hpp
+    src/ui/status-pill.cpp
+    src/ui/status-pill.hpp
+    src/ui/status-strip.cpp
+    src/ui/status-strip.hpp
+    src/ui/status-window.cpp
+    src/ui/status-window.hpp
+    src/ui/stream-button-bridge.cpp
+    src/ui/stream-button-bridge.hpp
+    src/ui/widgets.cpp
+    src/ui/widgets.hpp
 )
 
 if(APPLE)

@@ -22,6 +22,7 @@ const QString kScope = QStringLiteral("https://www.googleapis.com/auth/youtube.f
 const QString kRefreshSecret = QStringLiteral("youtube.refresh-token");
 const QString kName = QStringLiteral("YouTube");
 constexpr int kTitleLimit = 100;
+constexpr int kDescriptionLimit = 5000;
 constexpr int kTokenSafetySeconds = 60;
 
 QString clientId()
@@ -45,6 +46,13 @@ QString youtubeTitle(const QString &title)
 	QString cleaned = title;
 	cleaned.remove(QLatin1Char('<')).remove(QLatin1Char('>'));
 	return cleaned.trimmed().left(kTitleLimit);
+}
+
+QString youtubeDescription(const QString &description)
+{
+	QString cleaned = description;
+	cleaned.remove(QLatin1Char('<')).remove(QLatin1Char('>'));
+	return cleaned.trimmed().left(kDescriptionLimit);
 }
 
 HttpRequest apiRequest(const QString &path, const QList<QPair<QString, QString>> &query)
@@ -350,6 +358,7 @@ void YouTubeProvider::createBroadcast(const StartIntent &intent, const QJsonObje
 	request.json(QJsonDocument(QJsonObject{
 		{QStringLiteral("snippet"),
 		 QJsonObject{{QStringLiteral("title"), youtubeTitle(intent.title)},
+			     {QStringLiteral("description"), youtubeDescription(intent.description)},
 			     {QStringLiteral("scheduledStartTime"), QDateTime::currentDateTimeUtc().toString(Qt::ISODate)}}},
 		{QStringLiteral("status"),
 		 QJsonObject{{QStringLiteral("privacyStatus"), settings.value(QStringLiteral("privacy")).toString(QStringLiteral("public"))},

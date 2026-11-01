@@ -16,7 +16,19 @@
 - `test_engine.py`: tres salidas con codificador compartido, parada y reinicio aislados, destino caído sin afectar a los demás.
 - `test_coordinator.py`: caso normal, fallo en comprobación previa sin publicar, preparación incierta con limpieza, caída parcial, cierre pendiente con reintento, doble clic.
 - `test_recovery.py`: cierre forzado de OBS, detección de la emisión pendiente, bloqueo de un inicio nuevo y cierre posterior.
+- `test_reconnect.py`: corte breve con reconexión automática en el mismo directo; agotados los reintentos, transmisión parcial con «Reintentar» (mismo directo) o «Nuevo directo» (solo ese destino); directo cerrado del lado remoto.
+- `test_ui.py`: el botón «Iniciar transmisión» de OBS abre la ventana de Multistream, cambia a «Finalizar transmisión» al aire, pide confirmación antes de cortar y la retira si la sesión termina por otra vía.
+- `capture_manual.py`: regenera las capturas del manual en modo demostración (destinos locales con nombres de ejemplo) y restaura la configuración real al terminar.
 - `spike/tiktok/tests`: contrato Streamlabs, redacción y PKCE.
+
+## Interfaz
+
+Manual con capturas en [`docs/manual/`](manual/README.md).
+
+- **Barra de estado de OBS** (no hay panel acoplable): un ícono por destino con su indicador (forma y color distintos para listo, enviando, al aire, ocupado y atención), el tiempo al aire y un engranaje. Clic abre la ventana de estado; clic derecho, acciones rápidas del destino.
+- **Ventana «Transmitir»** (con «Iniciar transmisión» de OBS, el engranaje o el atajo): recientes como plantillas, título con `{fecha}` y `{hora}`, descripción, destinos con sus opciones en la misma fila (visibilidad y declaración de contenido para niños en YouTube, privado al terminar en Facebook, aviso del título recortado en TikTok), calidad con la subida estimada. Enter transmite; el botón explica qué falta.
+- **Ventana de estado**: todos los destinos con estado, datos enviados, frames perdidos, reconexiones, mensaje cuando algo falla y la acción que corresponde (conectar, reintentar, nuevo directo, abrir); aviso de emisión sin cerrar o de atención; finalizar.
+- **Botón de OBS**: mientras OBS no transmita por su cuenta, «Iniciar transmisión» abre la ventana; al aire muestra «Finalizar transmisión» y pide confirmación. Se desactiva desde el engranaje.
 
 ## Decisiones que difieren del plan
 
@@ -36,7 +48,7 @@
 
 ## Pendiente
 
-- Compilar y probar en Windows (no hay minutos de GitHub Actions; opciones: repo público o runner propio).
+- Probar en Windows el paquete que genera GitHub Actions (`.github/workflows/build.yaml`).
 - Google: la app está **en producción sin verificar** (aviso de "app no verificada", hasta 100 usuarios). La verificación formal del permiso sensible `youtube.force-ssl` queda opcional.
 - Meta: la app está **publicada (modo activo)** con acceso estándar; solo autorizan cuentas con rol en la app (`cuenta-de-prueba` ya es tester).
 - Pruebas largas (60 min y 120 min con grabación local) y aceptación con operador.

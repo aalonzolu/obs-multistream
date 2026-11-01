@@ -3,6 +3,11 @@
 #include "media/media-profile.hpp"
 #include "storage/json-file.hpp"
 
+#include <QDateTime>
+#include <QJsonArray>
+#include <QTimeZone>
+#include <QUuid>
+
 namespace multistream {
 
 namespace {
@@ -10,8 +15,33 @@ namespace {
 constexpr int kSchemaVersion = 1;
 const QString kProviders = QStringLiteral("providers");
 const QString kSelected = QStringLiteral("selected");
+const QString kTemplates = QStringLiteral("templates");
+constexpr int kMaxTemplates = 12;
+
+QJsonObject toJson(const StreamTemplate &t)
+{
+	return {{QStringLiteral("id"), t.id},
+		{QStringLiteral("title"), t.title},
+		{QStringLiteral("description"), t.description},
+		{QStringLiteral("last_used"), t.lastUsed}};
+}
+
+StreamTemplate fromJson(const QJsonObject &o)
+{
+	return {o.value(QStringLiteral("id")).toString(), o.value(QStringLiteral("title")).toString(),
+		o.value(QStringLiteral("description")).toString(), o.value(QStringLiteral("last_used")).toString()};
+}
 
 } // namespace
+
+QString renderTemplateText(const QString &text)
+{
+	const QDateTime now = QDateTime::currentDateTime().toTimeZone(QTimeZone("America/Guatemala"));
+	QString rendered = text;
+	rendered.replace(QStringLiteral("{fecha}"), now.toString(QStringLiteral("dd/MM/yyyy")));
+	rendered.replace(QStringLiteral("{hora}"), now.toString(QStringLiteral("HH:mm")));
+	return rendered.trimmed();
+}
 
 Settings &Settings::shared()
 {
@@ -78,6 +108,63 @@ void Settings::setReconnect(int retries, int delaySeconds)
 {
 	root_.insert(QStringLiteral("reconnect_retries"), retries);
 	root_.insert(QStringLiteral("reconnect_delay_seconds"), delaySeconds);
+	save();
+}
+
+QList<StreamTemplate> Settings::templates() const
+{
+	QList<StreamTemplate> result;
+	for (const QJsonValue value : root_.value(kTemplates).toArray())
+		result.append(fromJson(value.toObject()));
+	std::sort(result.begin(), result.end(), [](const StreamTemplate &a, const StreamTemplate &b) { return a.lastUsed > b.lastUsed; });
+	return result;
+}
+
+void Settings::recordTemplateUse(const QString &title, const QString &description)
+{
+	QList<StreamTemplate> list = templates();
+	const QString now = QDateTime::currentDateTimeUtc().toString(Qt::ISODateWithMs);
+	auto match = std::find_if(list.begin(), list.end(), [&](const StreamTemplate &t) {
+		return t.title == title && t.description == description;
+	});
+	if (match != list.end())
+		match->lastUsed = now;
+	else
+		list.prepend({QUuid::createUuid().toString(QUuid::WithoutBraces), title, description, now});
+	std::sort(list.begin(), list.end(), [](const StreamTemplate &a, const StreamTemplate &b) { return a.lastUsed > b.lastUsed; });
+	QJsonArray array;
+	for (qsizetype i = 0; i < std::min<qsizetype>(list.size(), kMaxTemplates); ++i)
+		array.append(toJson(list.at(i)));
+	root_.insert(kTemplates, array);
+	save();
+}
+
+void Settings::saveTemplate(const StreamTemplate &streamTemplate)
+{
+	QJsonArray array = root_.value(kTemplates).toArray();
+	for (qsizetype i = 0; i < array.size(); ++i) {
+		if (array.at(i).toObject().value(QStringLiteral("id")).toString() == streamTemplate.id) {
+			array.replace(i, toJson(streamTemplate));
+			root_.insert(kTemplates, array);
+			save();
+			return;
+		}
+	}
+	array.prepend(toJson(streamTemplate));
+	root_.insert(kTemplates, array);
+	save();
+}
+
+void Settings::removeTemplate(const QString &id)
+{
+	QJsonArray array = root_.value(kTemplates).toArray();
+	for (qsizetype i = 0; i < array.size(); ++i) {
+		if (array.at(i).toObject().value(QStringLiteral("id")).toString() == id) {
+			array.removeAt(i);
+			break;
+		}
+	}
+	root_.insert(kTemplates, array);
 	save();
 }
 

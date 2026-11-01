@@ -1,9 +1,19 @@
 #pragma once
 
 #include <QJsonObject>
+#include <QList>
 #include <QString>
 
 namespace multistream {
+
+struct StreamTemplate {
+	QString id;
+	QString title;
+	QString description;
+	QString lastUsed;
+};
+
+QString renderTemplateText(const QString &text);
 
 class Settings {
 public:
@@ -18,6 +28,11 @@ public:
 	int reconnectDelaySeconds() const;
 	void setReconnect(int retries, int delaySeconds);
 	void setVideoEncoder(const QString &id);
+
+	QList<StreamTemplate> templates() const;
+	void recordTemplateUse(const QString &title, const QString &description);
+	void saveTemplate(const StreamTemplate &streamTemplate);
+	void removeTemplate(const QString &id);
 
 	bool selected(const QString &provider) const;
 	void setSelected(const QString &provider, bool selected);

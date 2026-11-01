@@ -208,7 +208,7 @@ void Coordinator::persist(const QString &id)
 	Journal::shared().updateTarget(sessionUuid_, entry);
 }
 
-void Coordinator::start(const QString &title)
+void Coordinator::start(const QString &title, const QString &description)
 {
 	if (state_ != SessionState::Idle && state_ != SessionState::Attention)
 		return;
@@ -242,6 +242,7 @@ void Coordinator::start(const QString &title)
 
 	const int generation = ++generation_;
 	title_ = title.trimmed();
+	description_ = description.trimmed();
 	sessionUuid_.clear();
 	outputsStopped_ = false;
 	for (const QString &id : selected) {
@@ -337,7 +338,7 @@ void Coordinator::afterPreflight(int generation)
 	});
 	phaseTimer_.start(kPrepareTimeoutMs);
 
-	const StartIntent intent{sessionUuid_, title_};
+	const StartIntent intent{sessionUuid_, title_, description_};
 	for (const QString &id : sessionTargets()) {
 		at(id).provider->prepare(intent, [this, generation, id](Result<PreparedSession> result) {
 			Target &target = at(id);
@@ -592,7 +593,7 @@ void Coordinator::restartTarget(const QString &id)
 	recomputeLiveState();
 
 	const int generation = generation_;
-	const StartIntent intent{QStringLiteral("%1:r%2").arg(sessionUuid_).arg(++restartCounter_), title_};
+	const StartIntent intent{QStringLiteral("%1:r%2").arg(sessionUuid_).arg(++restartCounter_), title_, description_};
 	target.provider->prepare(intent, [this, generation, id](Result<PreparedSession> result) {
 		const bool current = generation == generation_ &&
 				     (state_ == SessionState::Live || state_ == SessionState::Partial) &&

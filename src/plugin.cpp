@@ -6,24 +6,32 @@
 #include "providers/tiktok-streamlabs.hpp"
 #include "providers/youtube.hpp"
 #include "storage/settings.hpp"
-#include "ui/multistream-dock.hpp"
+#include "ui/session-controller.hpp"
+#include "ui/status-strip.hpp"
+#include "ui/status-window.hpp"
+#include "ui/stream-button-bridge.hpp"
 
 #include <plugin-support.h>
 
+#include <QApplication>
 #include <QCloseEvent>
-#include <QDockWidget>
+#include <QDialog>
+#include <QMouseEvent>
+#include <QPixmap>
 #include <QJsonArray>
 #include <QMainWindow>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QStatusBar>
 #include <QTimer>
+
+#include <array>
 
 namespace multistream {
 
 namespace {
 
 Plugin *gPlugin = nullptr;
-constexpr const char *kDockId = "obs-multistream-dock";
 constexpr int kCloseDeadlineMs = 15000;
 
 QJsonObject failure(const QString &message)
@@ -65,9 +73,23 @@ Plugin::Plugin() : engine_(new MediaEngine(this)), coordinator_(new Coordinator(
 {
 	qRegisterMetaType<multistream::Transport>();
 
-	coordinator_->addProvider(new MetaBrokerProvider(coordinator_));
-	coordinator_->addProvider(new YouTubeProvider(coordinator_));
-	coordinator_->addProvider(new TikTokStreamlabsProvider(coordinator_));
+	if (qEnvironmentVariableIsSet("MULTISTREAM_DEMO")) {
+		const QList<std::array<QString, 3>> demo = {
+			{QStringLiteral("facebook"), QStringLiteral("Facebook"), QStringLiteral("Mi página")},
+			{QStringLiteral("youtube"), QStringLiteral("YouTube"), QStringLiteral("Mi canal")},
+			{QStringLiteral("tiktok"), QStringLiteral("TikTok"), QStringLiteral("@mi_cuenta")},
+		};
+		for (const auto &[id, name, identity] : demo) {
+			auto *provider = new LocalTestProvider(id, name, coordinator_);
+			provider->setIdentity(identity);
+			localProviders_[id] = provider;
+			coordinator_->addProvider(provider);
+		}
+	} else {
+		coordinator_->addProvider(new MetaBrokerProvider(coordinator_));
+		coordinator_->addProvider(new YouTubeProvider(coordinator_));
+		coordinator_->addProvider(new TikTokStreamlabsProvider(coordinator_));
+	}
 	if (qEnvironmentVariableIsSet("MULTISTREAM_DEV_TARGETS")) {
 		for (const QString &id : {QStringLiteral("local-a"), QStringLiteral("local-b")}) {
 			auto *provider = new LocalTestProvider(id, QStringLiteral("Prueba %1").arg(id.right(1).toUpper()), coordinator_);
@@ -77,8 +99,7 @@ Plugin::Plugin() : engine_(new MediaEngine(this)), coordinator_(new Coordinator(
 	}
 
 	mainWindow_ = static_cast<QMainWindow *>(obs_frontend_get_main_window());
-	dock_ = new MultistreamDock(coordinator_);
-	obs_frontend_add_dock_by_id(kDockId, "Multistream", dock_);
+	controller_ = new ui::SessionController(coordinator_, mainWindow_, this);
 	if (mainWindow_)
 		mainWindow_->installEventFilter(this);
 
@@ -108,6 +129,8 @@ void Plugin::handleFrontendEvent(obs_frontend_event event, void *data)
 		self->onFinishedLoading();
 	else if (event == OBS_FRONTEND_EVENT_EXIT)
 		self->onExit();
+	else if ((event == OBS_FRONTEND_EVENT_STREAMING_STARTED || event == OBS_FRONTEND_EVENT_STREAMING_STOPPED) && self->streamButton_)
+		self->streamButton_->render();
 	else if (event == OBS_FRONTEND_EVENT_STREAMING_STARTING && self->coordinator_->streaming())
 		obs_log(LOG_WARNING, "native OBS streaming started while a Multistream session is active");
 }
@@ -139,8 +162,8 @@ void Plugin::registerHotkeys()
 		"obs_multistream.start", "Multistream: transmitir a los destinos elegidos",
 		[](void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
 			auto *self = static_cast<Plugin *>(data);
-			if (pressed && self->dock_ && !self->coordinator_->streaming())
-				QMetaObject::invokeMethod(self->dock_, &MultistreamDock::toggleStreaming, Qt::QueuedConnection);
+			if (pressed && !self->coordinator_->streaming())
+				QMetaObject::invokeMethod(self->controller_, &ui::SessionController::toggleStreaming, Qt::QueuedConnection);
 		},
 		this);
 	stopHotkey_ = obs_hotkey_register_frontend(
@@ -153,31 +176,42 @@ void Plugin::registerHotkeys()
 		this);
 }
 
-void Plugin::revealDockOnFirstRun()
-{
-	if (!mainWindow_ || Settings::shared().provider(QStringLiteral("ui")).value(QStringLiteral("dock_revealed")).toBool())
-		return;
-	auto *dock = mainWindow_->findChild<QDockWidget *>(QString::fromLatin1(kDockId));
-	if (!dock)
-		return;
-	if (mainWindow_->dockWidgetArea(dock) == Qt::NoDockWidgetArea)
-		mainWindow_->addDockWidget(Qt::RightDockWidgetArea, dock);
-	dock->setFloating(false);
-	dock->setVisible(true);
-	dock->raise();
-	Settings::shared().mergeProvider(QStringLiteral("ui"), {{QStringLiteral("dock_revealed"), true}});
-}
-
 void Plugin::onFinishedLoading()
 {
-	revealDockOnFirstRun();
+	installStatusStrip();
+	takeOverStreamButton();
 	if (!vendor_.registerWithObsWebsocket())
 		obs_log(LOG_INFO, "obs-websocket not available; automation requests disabled");
 }
 
 void Plugin::onExit()
 {
+	delete streamButton_;
+	if (strip_ && mainWindow_)
+		mainWindow_->statusBar()->removeWidget(strip_);
+	delete strip_;
 	engine_->forceStopAll();
+}
+
+void Plugin::installStatusStrip()
+{
+	if (!mainWindow_)
+		return;
+	strip_ = new ui::StatusStrip(controller_);
+	mainWindow_->statusBar()->addWidget(strip_);
+	strip_->show();
+}
+
+void Plugin::takeOverStreamButton()
+{
+	auto *button = mainWindow_ ? mainWindow_->findChild<QPushButton *>(QStringLiteral("streamButton")) : nullptr;
+	if (!button) {
+		obs_log(LOG_WARNING, "OBS stream button not found; Multistream starts from the status bar");
+		return;
+	}
+	streamButton_ = new ui::StreamButtonBridge(button, coordinator_, [this] { controller_->toggleStreaming(); }, this);
+	streamButton_->setEnabled(controller_->replacesStreamButton());
+	connect(controller_, &ui::SessionController::streamButtonPreferenceChanged, streamButton_, &ui::StreamButtonBridge::setEnabled);
 }
 
 bool Plugin::eventFilter(QObject *watched, QEvent *event)
@@ -217,6 +251,59 @@ bool Plugin::confirmCloseWhileStreaming()
 	return box.clickedButton() == finish;
 }
 
+void Plugin::registerCaptureRequests()
+{
+	vendor_.add(QStringLiteral("DevRemember"), [](const QJsonObject &request) {
+		Settings::shared().recordTemplateUse(text(request, "title"), text(request, "description"));
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("DevSnapshot"), [this](const QJsonObject &request) {
+		const QString target = text(request, "target");
+		const QString path = text(request, "path");
+		QWidget *widget = nullptr;
+		if (target == QStringLiteral("modal"))
+			widget = QApplication::activeModalWidget();
+		else if (target == QStringLiteral("status-window"))
+			widget = mainWindow_ ? mainWindow_->findChild<ui::StatusWindow *>() : nullptr;
+		else if (target == QStringLiteral("status-bar"))
+			widget = mainWindow_ ? mainWindow_->statusBar() : nullptr;
+		else if (target == QStringLiteral("main"))
+			widget = mainWindow_;
+		if (!widget)
+			return failure(QStringLiteral("no hay nada que capturar para «%1»").arg(target));
+		QRect area = widget->rect();
+		const QJsonObject crop = request.value(QStringLiteral("crop")).toObject();
+		if (!crop.isEmpty())
+			area = QRect(crop.value(QStringLiteral("x")).toInt(), crop.value(QStringLiteral("y")).toInt(),
+				     crop.value(QStringLiteral("width")).toInt(area.width()), crop.value(QStringLiteral("height")).toInt(area.height()));
+		const qreal scale = request.value(QStringLiteral("scale")).toDouble(2.0);
+		QPixmap image(area.size() * scale);
+		image.setDevicePixelRatio(scale);
+		image.fill(Qt::transparent);
+		widget->render(&image, QPoint(), QRegion(area), QWidget::DrawWindowBackground | QWidget::DrawChildren);
+		if (!image.save(path))
+			return failure(QStringLiteral("no se pudo guardar %1").arg(path));
+		return success({{QStringLiteral("width"), area.width()}, {QStringLiteral("height"), area.height()}});
+	});
+
+	vendor_.add(QStringLiteral("DevGeometry"), [this](const QJsonObject &) {
+		if (!strip_)
+			return failure(QStringLiteral("sin barra"));
+		const QRect strip = strip_->geometry();
+		QJsonObject geometry{{QStringLiteral("strip_right"), strip.right()}, {QStringLiteral("bar_height"), strip_->parentWidget()->height()}};
+		if (auto *button = mainWindow_->findChild<QPushButton *>(QStringLiteral("streamButton"))) {
+			const QWidget *controls = button->parentWidget();
+			const QRect area(controls->mapTo(mainWindow_, QPoint(0, 0)), controls->size());
+			geometry.insert(QStringLiteral("controls"), QJsonObject{{QStringLiteral("x"), area.x()},
+										  {QStringLiteral("y"), area.y()},
+										  {QStringLiteral("width"), area.width()},
+										  {QStringLiteral("height"), area.height()}});
+		}
+		return success(geometry);
+	});
+}
+
 void Plugin::registerTestRequests()
 {
 	vendor_.add(QStringLiteral("GetStatus"), [this](const QJsonObject &) {
@@ -230,10 +317,10 @@ void Plugin::registerTestRequests()
 	});
 
 	vendor_.add(QStringLiteral("Connect"), [this](const QJsonObject &request) {
-		if (!dock_ || !coordinator_->provider(text(request, "provider")))
+		if (!coordinator_->provider(text(request, "provider")))
 			return failure(QStringLiteral("destino desconocido"));
 		setBrowserSuppressed(!request.value(QStringLiteral("open_browser")).toBool(true));
-		dock_->connectProvider(text(request, "provider"));
+		controller_->connectProvider(text(request, "provider"));
 		return success();
 	});
 
@@ -278,7 +365,7 @@ void Plugin::registerTestRequests()
 	});
 
 	vendor_.add(QStringLiteral("Start"), [this](const QJsonObject &request) {
-		coordinator_->start(text(request, "title"));
+		coordinator_->start(text(request, "title"), text(request, "description"));
 		return success({{QStringLiteral("session"), coordinator_->snapshot()}});
 	});
 
@@ -286,6 +373,56 @@ void Plugin::registerTestRequests()
 		coordinator_->stop();
 		return success();
 	});
+
+	vendor_.add(QStringLiteral("GetStreamButton"), [this](const QJsonObject &) {
+		auto *button = mainWindow_ ? mainWindow_->findChild<QPushButton *>(QStringLiteral("streamButton")) : nullptr;
+		if (!button)
+			return failure(QStringLiteral("botón de OBS no encontrado"));
+		return success({{QStringLiteral("text"), button->text()},
+				{QStringLiteral("class"), button->property("class").toString()},
+				{QStringLiteral("enabled"), button->isEnabled()},
+				{QStringLiteral("signals_blocked"), button->signalsBlocked()}});
+	});
+
+	vendor_.add(QStringLiteral("ClickStreamButton"), [this](const QJsonObject &) {
+		auto *button = mainWindow_ ? mainWindow_->findChild<QPushButton *>(QStringLiteral("streamButton")) : nullptr;
+		if (!button)
+			return failure(QStringLiteral("botón de OBS no encontrado"));
+		const QPointF center = QRectF(button->rect()).center();
+		const QPointF global = button->mapToGlobal(center);
+		QMouseEvent press(QEvent::MouseButtonPress, center, global, Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+		QMouseEvent release(QEvent::MouseButtonRelease, center, global, Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+		QCoreApplication::sendEvent(button, &press);
+		QCoreApplication::sendEvent(button, &release);
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("GetModal"), [](const QJsonObject &) {
+		QWidget *modal = QApplication::activeModalWidget();
+		return success({{QStringLiteral("title"), modal ? modal->windowTitle() : QString()},
+				{QStringLiteral("name"), modal ? modal->objectName() : QString()}});
+	});
+
+	vendor_.add(QStringLiteral("DismissModal"), [](const QJsonObject &) {
+		QWidget *modal = QApplication::activeModalWidget();
+		const QString title = modal ? modal->windowTitle() : QString();
+		if (modal)
+			QTimer::singleShot(0, modal, [modal] {
+				if (auto *dialog = qobject_cast<QDialog *>(modal))
+					dialog->reject();
+				else
+					modal->close();
+			});
+		return success({{QStringLiteral("title"), title}});
+	});
+
+	vendor_.add(QStringLiteral("OpenStatusWindow"), [this](const QJsonObject &) {
+		QTimer::singleShot(0, controller_, &ui::SessionController::openStatusWindow);
+		return success();
+	});
+
+	if (qEnvironmentVariableIsSet("MULTISTREAM_AUTOMATION"))
+		registerCaptureRequests();
 
 	vendor_.add(QStringLiteral("Retry"), [this](const QJsonObject &request) {
 		coordinator_->retry(text(request, "provider"));
