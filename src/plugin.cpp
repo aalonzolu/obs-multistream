@@ -1,6 +1,7 @@
 #include "plugin.hpp"
 
 #include "build-config.hpp"
+#include "providers/app-credentials.hpp"
 #include "providers/custom-rtmp.hpp"
 #include "providers/local-test.hpp"
 #include "providers/meta-broker.hpp"
@@ -281,6 +282,22 @@ void Plugin::registerCaptureRequests()
 		return success();
 	});
 
+	vendor_.add(QStringLiteral("DevApps"), [](const QJsonObject &request) {
+		QString error;
+		const QJsonObject google = request.value(QStringLiteral("google")).toObject();
+		const QJsonObject meta = request.value(QStringLiteral("meta")).toObject();
+		const bool useBuiltInForGoogle = google.value(QStringLiteral("same_as_built_in")).toBool();
+		if (google.isEmpty())
+			apps::clearGoogle();
+		else if (!apps::saveGoogle(useBuiltInForGoogle ? apps::builtInGoogle() : GoogleApp{text(google, "client_id"), text(google, "client_secret")}, &error))
+			return failure(error);
+		if (meta.isEmpty())
+			apps::clearMeta();
+		else if (!apps::saveMeta({text(meta, "app_id"), text(meta, "app_secret"), text(meta, "config_id")}, &error))
+			return failure(error);
+		return success({{QStringLiteral("custom_google"), apps::customGoogle().has_value()}, {QStringLiteral("custom_meta"), apps::customMeta().has_value()}});
+	});
+
 	vendor_.add(QStringLiteral("DevSnapshot"), [this](const QJsonObject &request) {
 		const QString target = text(request, "target");
 		const QString path = text(request, "path");
@@ -535,6 +552,11 @@ void Plugin::registerTestRequests()
 
 	vendor_.add(QStringLiteral("OpenAddCustom"), [this](const QJsonObject &) {
 		QTimer::singleShot(0, controller_, &ui::SessionController::addCustomDestination);
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("OpenApps"), [this](const QJsonObject &) {
+		QTimer::singleShot(0, controller_, &ui::SessionController::openAppsSettings);
 		return success();
 	});
 

@@ -9,6 +9,7 @@
 namespace multistream {
 
 struct HttpResponse;
+class MetaLocalBroker;
 
 class MetaBrokerProvider : public Provider {
 	Q_OBJECT
@@ -54,6 +55,7 @@ private:
 	QTimer pollTimer_;
 	int pollsLeft_ = 0;
 	QSet<QString> goLiveRequested_;
+	MetaLocalBroker *local_;
 };
 
 bool splitIngestUrl(const QString &url, QString *server, QString *key);

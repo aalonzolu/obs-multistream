@@ -1,8 +1,8 @@
 #include "providers/youtube.hpp"
 
-#include "build-config.hpp"
 #include "net/http-client.hpp"
 #include "net/loopback-receiver.hpp"
+#include "providers/app-credentials.hpp"
 #include "security/pkce.hpp"
 #include "security/secret-store.hpp"
 #include "storage/settings.hpp"
@@ -27,12 +27,12 @@ constexpr int kTokenSafetySeconds = 60;
 
 QString clientId()
 {
-	return QStringLiteral(MULTISTREAM_GOOGLE_CLIENT_ID);
+	return apps::google().clientId;
 }
 
 QString clientSecret()
 {
-	return QStringLiteral(MULTISTREAM_GOOGLE_CLIENT_SECRET);
+	return apps::google().clientSecret;
 }
 
 QString firstReason(const QJsonObject &root)
@@ -75,7 +75,7 @@ bool YouTubeProvider::configured(QString *reason) const
 {
 	if (!clientId().isEmpty())
 		return true;
-	*reason = QStringLiteral("Esta compilación no tiene configurada la app de Google para YouTube.");
+	*reason = QStringLiteral("Falta la app de Google. Configurala en Multistream → Apps de YouTube y Facebook.");
 	return false;
 }
 

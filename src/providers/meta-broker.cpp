@@ -2,6 +2,8 @@
 
 #include "build-config.hpp"
 #include "net/http-client.hpp"
+#include "providers/app-credentials.hpp"
+#include "providers/meta-local-broker.hpp"
 #include "security/pkce.hpp"
 #include "security/secret-store.hpp"
 #include "storage/settings.hpp"
@@ -44,16 +46,16 @@ bool splitIngestUrl(const QString &url, QString *server, QString *key)
 	return true;
 }
 
-MetaBrokerProvider::MetaBrokerProvider(QObject *parent) : Provider(parent)
+MetaBrokerProvider::MetaBrokerProvider(QObject *parent) : Provider(parent), local_(new MetaLocalBroker(this))
 {
 	pollTimer_.setInterval(kPollIntervalMs);
 }
 
 bool MetaBrokerProvider::configured(QString *reason) const
 {
-	if (!brokerUrl().isEmpty())
+	if (apps::customMeta() || !brokerUrl().isEmpty())
 		return true;
-	*reason = QStringLiteral("Esta compilación no tiene configurado el servicio de Facebook.");
+	*reason = QStringLiteral("Falta la app de Facebook. Configurala en Multistream → Apps de YouTube y Facebook.");
 	return false;
 }
 
@@ -81,6 +83,10 @@ Account MetaBrokerProvider::account() const
 void MetaBrokerProvider::call(const QString &path, const QJsonObject &body, bool createsRemoteResource,
 			      Callback<QJsonObject> done, const QByteArray &idempotencyKey)
 {
+	if (apps::customMeta()) {
+		local_->request(path, body, std::move(done), idempotencyKey);
+		return;
+	}
 	HttpRequest request;
 	request.method = "POST";
 	request.url = QUrl(brokerUrl() + path);
@@ -145,6 +151,10 @@ void MetaBrokerProvider::poll(Callback<Account> done)
 			     const QString status = result.ok() ? result.value->value(QStringLiteral("status")).toString() : QString();
 			     if (status == QStringLiteral("ready")) {
 				     fetchResult(done);
+			     } else if (status == QStringLiteral("failed")) {
+				     transactionId_.clear();
+				     done(Result<Account>::failure(Error::make(ErrorKind::Rejected, QStringLiteral("LOGIN_FAILED"),
+									       result.value->value(QStringLiteral("message")).toString())));
 			     } else if (status == QStringLiteral("denied") || status == QStringLiteral("expired")) {
 				     transactionId_.clear();
 				     done(Result<Account>::failure(Error::make(
@@ -232,6 +242,7 @@ void MetaBrokerProvider::cancelConnect()
 
 void MetaBrokerProvider::disconnectAccount()
 {
+	local_->reset();
 	secrets::remove(kPageTokenSecret);
 	QJsonObject kept = Settings::shared().provider(id());
 	for (const QString &field : {QStringLiteral("user_id"), QStringLiteral("user_name"), QStringLiteral("page_id"), QStringLiteral("page_name")})

@@ -15,6 +15,7 @@ constexpr int kSchemaVersion = 1;
 const QString kProviders = QStringLiteral("providers");
 const QString kSelected = QStringLiteral("selected");
 const QString kTemplates = QStringLiteral("templates");
+const QString kApps = QStringLiteral("apps");
 constexpr int kMaxTemplates = 12;
 
 QJsonObject toJson(const StreamTemplate &t)
@@ -216,6 +217,17 @@ void Settings::mergeProvider(const QString &provider, const QJsonObject &values)
 		current.insert(it.key(), it.value());
 	providers.insert(provider, current);
 	root_.insert(kProviders, providers);
+	save();
+}
+
+QJsonObject Settings::apps() const
+{
+	return root_.value(kApps).toObject();
+}
+
+void Settings::setApps(const QJsonObject &values)
+{
+	root_.insert(kApps, values);
 	save();
 }
 

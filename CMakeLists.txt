@@ -74,12 +74,16 @@ target_sources(
     src/orchestration/coordinator.hpp
     src/orchestration/scheduler.cpp
     src/orchestration/scheduler.hpp
+    src/providers/app-credentials.cpp
+    src/providers/app-credentials.hpp
     src/providers/custom-rtmp.cpp
     src/providers/custom-rtmp.hpp
     src/providers/local-test.cpp
     src/providers/local-test.hpp
     src/providers/meta-broker.cpp
     src/providers/meta-broker.hpp
+    src/providers/meta-local-broker.cpp
+    src/providers/meta-local-broker.hpp
     src/providers/provider.cpp
     src/providers/provider.hpp
     src/providers/tiktok-streamlabs.cpp
@@ -105,6 +109,8 @@ target_sources(
     src/testing/websocket-vendor.hpp
     src/ui/alert-center.cpp
     src/ui/alert-center.hpp
+    src/ui/apps-dialog.cpp
+    src/ui/apps-dialog.hpp
     src/ui/brand-mark.cpp
     src/ui/brand-mark.hpp
     src/ui/custom-dialog.cpp

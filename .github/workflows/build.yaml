@@ -12,6 +12,7 @@ on:
       - 'CMakeLists.txt'
       - 'CMakePresets.json'
       - 'buildspec.json'
+      - 'installer/**'
       - '.github/workflows/build.yaml'
   pull_request:
     paths:
@@ -60,10 +61,27 @@ jobs:
         shell: pwsh
         run: cmake --install build_x64 --prefix release/obs-multistream --config RelWithDebInfo
 
+      - name: Instalador
+        shell: pwsh
+        run: |
+          $version = (Get-Content buildspec.json -Raw | ConvertFrom-Json).version
+          $iscc = Join-Path ${env:ProgramFiles(x86)} 'Inno Setup 6\ISCC.exe'
+          if (-not (Test-Path $iscc)) {
+            choco install innosetup -y --no-progress
+          }
+          & $iscc "/DAppVersion=$version" "/DSourceDir=$PWD\release\obs-multistream" "/DOutputDir=$PWD\installer-out" installer\windows\multistream.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
       - uses: actions/upload-artifact@v4
         with:
           name: obs-multistream-windows-x64-${{ github.sha }}
           path: release/obs-multistream
+          if-no-files-found: error
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: obs-multistream-windows-installer-${{ github.sha }}
+          path: installer-out/*.exe
           if-no-files-found: error
 
   macos:
@@ -182,6 +200,7 @@ jobs:
           windows="artifacts/obs-multistream-windows-x64-${GITHUB_SHA}"
           macos="artifacts/obs-multistream-macos-${GITHUB_SHA}"
           linux="artifacts/obs-multistream-linux-x64-${GITHUB_SHA}"
+          cp artifacts/obs-multistream-windows-installer-${GITHUB_SHA}/*.exe "obs-multistream-${version}-windows-x64-instalador.exe"
           find "$windows" -name '*.pdb' -delete
           (cd "$windows" && zip -qr "$GITHUB_WORKSPACE/obs-multistream-${version}-windows-x64.zip" obs-multistream)
           ditto -c -k --keepParent "$macos/obs-multistream.plugin" "obs-multistream-${version}-macos.zip"
@@ -191,7 +210,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" obs-multistream-*.zip \
+          gh release create "$GITHUB_REF_NAME" obs-multistream-*.zip obs-multistream-*.exe \
             --title "Multistream $GITHUB_REF_NAME" \
             --notes-file .github/release-notes.md \
             --generate-notes

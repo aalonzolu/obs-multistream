@@ -48,6 +48,7 @@ public slots:
 	void openRadioSettings();
 	void openScheduleWindow(const QString &title = {}, const QString &description = {});
 	void addCustomDestination();
+	void openAppsSettings();
 	void editCustomDestination(const QString &providerId);
 	void toggleRadio();
 	void connectProvider(const QString &providerId);

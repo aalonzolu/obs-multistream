@@ -47,6 +47,9 @@ public:
 	void setProvider(const QString &provider, const QJsonObject &values);
 	void mergeProvider(const QString &provider, const QJsonObject &values);
 
+	QJsonObject apps() const;
+	void setApps(const QJsonObject &values);
+
 private:
 	Settings();
 	void save();

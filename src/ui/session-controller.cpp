@@ -4,6 +4,7 @@
 #include "storage/settings.hpp"
 #include "ui/presentation.hpp"
 #include "providers/custom-rtmp.hpp"
+#include "ui/apps-dialog.hpp"
 #include "ui/custom-dialog.hpp"
 #include "ui/radio-dialog.hpp"
 #include "ui/schedule-dialog.hpp"
@@ -86,6 +87,23 @@ void SessionController::addCustomDestination()
 		return;
 	}
 	coordinator_->addProvider(provider);
+	emit connectionsChanged();
+}
+
+void SessionController::openAppsSettings()
+{
+	if (coordinator_->streaming()) {
+		QMessageBox::information(window_, QStringLiteral("Multistream"), QStringLiteral("Finalizá la transmisión antes de cambiar las apps."));
+		return;
+	}
+	AppsDialog dialog(window_);
+	if (dialog.exec() != QDialog::Accepted)
+		return;
+	for (const auto &[changed, id] : {std::pair{dialog.googleChanged(), QStringLiteral("youtube")}, std::pair{dialog.metaChanged(), QStringLiteral("facebook")}}) {
+		Provider *provider = coordinator_->provider(id);
+		if (changed && provider && provider->hasCredential())
+			provider->disconnectAccount();
+	}
 	emit connectionsChanged();
 }
 

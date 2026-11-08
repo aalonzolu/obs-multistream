@@ -2,8 +2,9 @@
 
 ## Plataformas
 
-- **macOS** (arm64, OBS 32): probado con emisiones reales a Facebook, YouTube y TikTok, simultáneas, y con una radio AzuraCast.
-- **Windows** (x64): compila en GitHub Actions (`.github/workflows/build.yaml`); falta la prueba en un equipo real.
+- **macOS** (arm64): probado en OBS 32 con emisiones reales a Facebook, YouTube y TikTok, simultáneas, y con una radio AzuraCast. Desde la 0.2.0 se compila contra OBS 33.0.1 y carga en OBS 33; la prueba de radio con los cinco formatos pasa con su FFmpeg 8.
+- **Windows** (x64): compila en GitHub Actions (`.github/workflows/build.yaml`) junto con un instalador de Inno Setup; falta la prueba en un equipo real.
+- **Versión de OBS**: el plugin enlaza el FFmpeg y la libobs de la versión de OBS con la que se compila. La 0.1.0 (OBS 31, FFmpeg 7) no carga en OBS 33, que trae FFmpeg 8 (`avcodec-62.dll`): Windows responde con el error 126. La 0.2.0 requiere OBS 33.
 
 ## Pruebas reales
 
@@ -60,6 +61,10 @@ Manejan OBS por obs-websocket (peticiones del vendor `obs-multistream`) contra r
 - FFmpeg reintenta una vez por su cuenta ante un 401; Multistream no vuelve a intentar con una contraseña rechazada.
 
 ## Desplegar tus propias credenciales
+
+Cada persona puede cargar sus propias apps desde OBS, en *Apps de YouTube y Facebook…*, siguiendo [la guía](https://multistream.lexo.dev/apps/). Con una app de Meta propia, el plugin llama directo a la Graph API (`src/providers/meta-local-broker.cpp`) con la clave secreta guardada en el llavero, y la autorización vuelve a OBS a través de `site/auth/facebook/`, que reenvía el código al puerto local indicado en `state`.
+
+Para compilar una versión con apps incluidas:
 
 1. **YouTube**: proyecto de Google Cloud con YouTube Data API v3, cliente OAuth de escritorio y el permiso `youtube.force-ssl`. El ID y el secreto del cliente van en `local-config.cmake`.
 2. **Facebook**: app de Meta con Facebook Login for Business y una configuración con `pages_show_list`, `pages_read_engagement`, `pages_manage_posts` y `publish_video`.

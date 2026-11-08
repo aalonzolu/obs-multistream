@@ -301,6 +301,7 @@ void StatusStrip::openSettingsMenu()
 	actions.add(QStringLiteral("Configurar radio…"), [this] { controller_->openRadioSettings(); });
 	actions.add(QStringLiteral("Programar transmisión…"), [this] { controller_->openScheduleWindow(); });
 	actions.add(QStringLiteral("Agregar destino RTMP…"), [this] { controller_->addCustomDestination(); });
+	actions.add(QStringLiteral("Apps de YouTube y Facebook…"), [this] { controller_->openAppsSettings(); });
 	menu.addSeparator();
 	AlertCenter *alerts = controller_->alerts();
 	QAction *sound = actions.add(QStringLiteral("Avisos con sonido"), {});
