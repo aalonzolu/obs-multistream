@@ -136,7 +136,7 @@ AppsDialog::AppsDialog(QWidget *parent)
 	metaForm->addRow(QStringLiteral("ID de configuración"), metaConfigId_);
 	metaForm->addRow(QStringLiteral("URI de redirección"), redirectRow);
 	metaDetails_ = details(metaForm,
-			       hint(QStringLiteral("Pegá la URI de redirección en Facebook Login → Configuración → «URI de redireccionamiento de OAuth válidos». "
+			       hint(QStringLiteral("Pegá la URI de redirección en «Inicio de sesión con Facebook para empresas → Configurar», en «URI de redireccionamiento de OAuth válidos». "
 						   "Con tu propia app, Multistream habla directo con Facebook y la clave secreta queda solo en este equipo. "
 						   "Al cambiar de app hay que volver a conectar Facebook."),
 				    this),

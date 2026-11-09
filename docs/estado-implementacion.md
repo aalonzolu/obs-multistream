@@ -62,7 +62,7 @@ Manejan OBS por obs-websocket (peticiones del vendor `obs-multistream`) contra r
 
 ## Desplegar tus propias credenciales
 
-Cada persona puede cargar sus propias apps desde OBS, en *Apps de YouTube y Facebook…*, siguiendo [la guía](https://multistream.lexo.dev/apps/). Con una app de Meta propia, el plugin llama directo a la Graph API (`src/providers/meta-local-broker.cpp`) con la clave secreta guardada en el llavero, y la autorización vuelve a OBS a través de `site/auth/facebook/`, que reenvía el código al puerto local indicado en `state`.
+Cada persona puede cargar sus propias apps desde OBS, en *Apps de YouTube y Facebook…*, siguiendo [la guía](https://multistream.lexo.dev/apps/). Probado el 08/11/2026 con una app de Meta en modo de desarrollo (casos de uso de páginas y de video en vivo, sin `config_id`): autorización, directo en una página y cierre con el video oculto. Con una app de Meta propia, el plugin llama directo a la Graph API (`src/providers/meta-local-broker.cpp`) con la clave secreta guardada en el llavero, y la autorización vuelve a OBS a través de `site/auth/facebook/`, que reenvía el código al puerto local indicado en `state`.
 
 Para compilar una versión con apps incluidas:
 

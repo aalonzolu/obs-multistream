@@ -17,6 +17,11 @@ ol.steps ul { margin: 6px 0 0; padding-left: 1.1rem; }
 .note p { margin: 0; }
 .note p + p { margin-top: 8px; }
 .toc { display: flex; flex-wrap: wrap; gap: 8px 22px; margin: 18px 0 0; padding: 0; list-style: none; }
+ol.steps code { overflow-wrap: anywhere; }
+figure.shot { grid-column: 2; margin: 12px 0 4px; }
+figure.shot img { display: block; width: 100%; height: auto; border: 1px solid var(--rule); border-radius: 10px; background: #fff; }
+figure.shot.narrow img { max-width: 420px; }
+figure.shot figcaption { margin-top: 6px; font-size: 0.88rem; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -46,8 +51,10 @@ ol.steps ul { margin: 6px 0 0; padding-left: 1.1rem; }
     <h2>App de Google para YouTube</h2>
     <p>Usá la misma cuenta de Google que administra el canal, o una que tenga acceso a él.</p>
     <ol class="steps">
-      <li><strong>Creá un proyecto</strong><span>Entrá a <a href="https://console.cloud.google.com/projectcreate">console.cloud.google.com/projectcreate</a>, ponele un nombre (por ejemplo «Multistream») y tocá <em>Crear</em>.</span></li>
-      <li><strong>Habilitá la API de YouTube</strong><span>Con el proyecto elegido arriba, abrí <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com">YouTube Data API v3</a> y tocá <em>Habilitar</em>.</span></li>
+      <li><strong>Creá un proyecto</strong><span>Entrá a <a href="https://console.cloud.google.com/projectcreate">console.cloud.google.com/projectcreate</a>, ponele un nombre (por ejemplo «Multistream») y tocá <em>Crear</em>. Si Google dice que llegaste al límite de proyectos, usá uno que ya tengas.</span></li>
+      <li><strong>Habilitá la API de YouTube</strong><span>Con el proyecto elegido arriba, abrí <a href="https://console.cloud.google.com/apis/library/youtube.googleapis.com">YouTube Data API v3</a> y tocá <em>Habilitar</em>. Cuando está lista dice «API habilitada».</span>
+        <figure class="shot"><img src="img/google-1-api.webp" width="1200" height="348" alt="Página de YouTube Data API v3 en Google Cloud con la marca «API habilitada»." loading="lazy"></figure>
+      </li>
       <li><strong>Configurá la pantalla de autorización</strong><span>Abrí <a href="https://console.cloud.google.com/auth/overview">Google Auth Platform</a> y tocá <em>Comenzar</em>:</span>
         <ul>
           <li>Nombre de la app: el que quieras; correo de asistencia: el tuyo.</li>
@@ -55,8 +62,12 @@ ol.steps ul { margin: 6px 0 0; padding-left: 1.1rem; }
           <li>Información de contacto: tu correo. Aceptá la política y tocá <em>Crear</em>.</li>
         </ul>
       </li>
-      <li><strong>Creá el cliente</strong><span>En <a href="https://console.cloud.google.com/auth/clients">Clientes</a>, tocá <em>Crear cliente</em>, elegí el tipo <em>App de escritorio</em>, ponele un nombre y tocá <em>Crear</em>. Copiá el <strong>ID de cliente</strong> (termina en <code>.apps.googleusercontent.com</code>) y el <strong>Secreto del cliente</strong>.</span></li>
-      <li><strong>Publicá la app</strong><span>En <a href="https://console.cloud.google.com/auth/audience">Público</a>, tocá <em>Publicar app</em> y confirmá. No hace falta mandarla a verificar.</span></li>
+      <li><strong>Creá el cliente</strong><span>En <a href="https://console.cloud.google.com/auth/clients/create">Clientes → Crear cliente</a>, elegí el tipo <em>App de escritorio</em>, ponele un nombre y tocá <em>Crear</em>. Copiá el <strong>ID de cliente</strong> (termina en <code>.apps.googleusercontent.com</code>) y el <strong>Secreto del cliente</strong>.</span>
+        <figure class="shot narrow"><img src="img/google-2-cliente.webp" width="771" height="496" alt="Formulario «Crear ID de cliente de OAuth» con el tipo «App de escritorio» elegido." loading="lazy"></figure>
+      </li>
+      <li><strong>Publicá la app</strong><span>En <a href="https://console.cloud.google.com/auth/audience">Público</a>, tocá <em>Publicar app</em> y confirmá. Tiene que quedar «En producción». No hace falta mandarla a verificar.</span>
+        <figure class="shot narrow"><img src="img/google-3-publico.webp" width="771" height="342" alt="Página «Público» de Google Auth Platform con el estado «En producción»." loading="lazy"></figure>
+      </li>
     </ol>
     <div class="note">
       <p>Si la dejás en «Prueba», solo entran las cuentas que agregues como usuarios de prueba y Google pide volver a conectar cada 7 días. Publicada no vence.</p>
@@ -68,18 +79,22 @@ ol.steps ul { margin: 6px 0 0; padding-left: 1.1rem; }
     <h2>App de Meta para Facebook</h2>
     <p>La crea alguien que administre la página de Facebook donde se va a transmitir. La app queda en <em>modo de desarrollo</em> y no necesita revisión de Meta, pero solo pueden conectarla las personas con un rol en la app. Quien la crea ya es administrador.</p>
     <ol class="steps">
-      <li><strong>Entrá a Meta for Developers</strong><span>Abrí <a href="https://developers.facebook.com/apps/creation/">developers.facebook.com/apps/creation</a>. Si es la primera vez, Meta te pide registrarte como desarrollador y puede pedir un teléfono o una tarjeta para verificar la cuenta.</span></li>
-      <li><strong>Detalles de la app</strong><span>Ponele un nombre (no puede incluir «Facebook») y revisá el correo de contacto. Tocá <em>Siguiente</em>.</span></li>
-      <li><strong>Casos de uso</strong><span>Marcá estos tres y tocá <em>Siguiente</em>:</span>
-        <ul>
-          <li>En <em>Administración de contenido</em>: «Administrar todos los aspectos de tu página» y «Accede a la API de video en vivo».</li>
-          <li>En <em>Destacados</em>: «Autenticar y solicitar datos a usuarios con el inicio de sesión con Facebook».</li>
-        </ul>
+      <li><strong>Creá la app</strong><span>Abrí <a href="https://developers.facebook.com/apps/creation/">developers.facebook.com/apps/creation</a>. Ponele un nombre (no puede incluir «Facebook»), revisá el correo y tocá <em>Siguiente</em>. Si es la primera vez, Meta te pide registrarte como desarrollador y puede pedir un teléfono o una tarjeta.</span>
+        <figure class="shot"><img src="img/meta-1-detalles.webp" width="1200" height="489" alt="Primer paso de «Crear una app» en Meta: nombre de la app y correo de contacto." loading="lazy"></figure>
       </li>
-      <li><strong>Negocio y requisitos</strong><span>Elegí «Aún no quiero conectar un portfolio comercial» (o el portfolio de tu organización), seguí hasta el resumen y tocá <em>Crear app</em>.</span></li>
-      <li><strong>Permisos</strong><span>En el panel de la app, abrí <em>Casos de uso</em> y, en cada uno, <em>Personalizar</em>. Agregá <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code> y <code>publish_video</code>.</span></li>
-      <li><strong>Dirección de regreso</strong><span>En la configuración del inicio de sesión con Facebook, buscá «URI de redireccionamiento de OAuth válidos», pegá <code>https://multistream.lexo.dev/auth/facebook/</code> y guardá. Es una página que solo devuelve la autorización a OBS, en tu propio equipo.</span></li>
-      <li><strong>Copiá las claves</strong><span>En <em>Configuración de la app → Básica</em>, copiá el <strong>Identificador de la app</strong> y la <strong>Clave secreta de la app</strong> (tocá <em>Mostrar</em>; Meta pide tu contraseña).</span></li>
+      <li><strong>Elegí los casos de uso</strong><span>En el filtro <em>Administración de contenido</em>, marcá «Accede a la API de video en vivo» y «Administrar todos los aspectos de tu página», y tocá <em>Siguiente</em>. No agregues el de inicio de sesión: Meta no deja combinarlo con estos y la app ya trae su propio inicio de sesión.</span>
+        <figure class="shot"><img src="img/meta-2-casos.webp" width="1165" height="660" alt="Paso «Casos de uso» con «Accede a la API de video en vivo» y «Administrar todos los aspectos de tu página» marcados." loading="lazy"></figure>
+      </li>
+      <li><strong>Terminá de crearla</strong><span>En <em>Negocio</em> elegí «Aún no quiero conectar un portfolio comercial» (o el de tu organización), seguí hasta el resumen y tocá <em>Crear app</em>. Meta pide tu contraseña.</span></li>
+      <li><strong>Agregá el permiso para publicar</strong><span>En el panel, abrí <em>Casos de uso</em> → «Administrar todos los aspectos de tu página» → <em>Personalizar</em>, y en <code>pages_manage_posts</code> tocá <em>Agregar</em> (confirmá el aviso). <code>pages_show_list</code>, <code>pages_read_engagement</code> y <code>publish_video</code> ya aparecen «Listo para la prueba».</span>
+        <figure class="shot"><img src="img/meta-3-permisos.webp" width="1200" height="320" alt="Lista de permisos con pages_manage_posts y pages_read_engagement en «Listo para la prueba»." loading="lazy"></figure>
+      </li>
+      <li><strong>Pegá la dirección de regreso</strong><span>En el menú, abrí <em>Inicio de sesión con Facebook para empresas → Configurar</em>. En «URI de redireccionamiento de OAuth válidos» pegá <code>https://multistream.lexo.dev/auth/facebook/</code> y tocá <em>Guardar cambios</em>. Esa página solo devuelve la autorización a OBS, en tu propio equipo.</span>
+        <figure class="shot"><img src="img/meta-4-redireccion.webp" width="1200" height="396" alt="Configuración del inicio de sesión con Facebook para empresas con la URI de Multistream cargada." loading="lazy"></figure>
+      </li>
+      <li><strong>Copiá las claves</strong><span>En <em>Configuración de la app → Básica</em>, copiá el <strong>Identificador de la app</strong> y la <strong>Clave secreta de la app</strong> (tocá <em>Mostrar</em>; Meta pide tu contraseña).</span>
+        <figure class="shot"><img src="img/meta-5-claves.webp" width="1200" height="131" alt="Identificador de la app y clave secreta oculta en la configuración básica." loading="lazy"></figure>
+      </li>
     </ol>
     <div class="note">
       <p>Si otra persona tiene que conectar la página, agregala en <em>Roles de la app</em> como evaluador. Esa persona también necesita una cuenta de desarrollador de Meta.</p>
@@ -91,8 +106,12 @@ ol.steps ul { margin: 6px 0 0; padding-left: 1.1rem; }
     <h2>Cargarlas en OBS</h2>
     <ol class="steps">
       <li><strong>Abrí la configuración</strong><span>En OBS, tocá el engranaje de Multistream en la barra de estado y elegí <em>Apps de YouTube y Facebook…</em></span></li>
-      <li><strong>Pegá tus datos</strong><span>En cada plataforma, elegí <em>Mi propia app</em> y pegá lo que copiaste. Dejá el ID de configuración vacío salvo que uses Facebook Login for Business. Tocá <em>Guardar</em>.</span></li>
-      <li><strong>Conectá de nuevo</strong><span>Al cambiar de app se desconecta la cuenta anterior. Clic derecho en el ícono de YouTube o de Facebook y <em>Conectar…</em></span></li>
+      <li><strong>Pegá tus datos</strong><span>En cada plataforma, elegí <em>Mi propia app</em> y pegá lo que copiaste. El ID de configuración queda vacío. Tocá <em>Guardar</em>.</span>
+        <figure class="shot narrow"><img src="img/obs-apps.webp" width="560" height="597" alt="Ventana «Apps de YouTube y Facebook» de Multistream con «Mi propia app» elegida para Facebook." loading="lazy"></figure>
+      </li>
+      <li><strong>Conectá de nuevo</strong><span>Al cambiar de app se desconecta la cuenta anterior. Clic derecho en el ícono de YouTube o de Facebook y <em>Conectar…</em> En Facebook, elegí «Activar solo las Páginas actuales», marcá tu página y tocá <em>Guardar</em>.</span>
+        <figure class="shot narrow"><img src="img/meta-6-autorizar.webp" width="806" height="963" alt="Resumen de permisos que pide la app en Facebook antes de guardar." loading="lazy"></figure>
+      </li>
     </ol>
     <div class="note">
       <p>Para volver a las apps de Multistream, elegí <em>App de Multistream</em> en el mismo cuadro y conectá otra vez.</p>
