@@ -32,12 +32,14 @@ private:
 	void openDestinationMenu(DestinationBadge *badge);
 	void openRadioMenu();
 	void openSettingsMenu();
+	void openUpdateMenu();
 	QAction *popupAbove(QMenu &menu, QWidget *anchor);
 
 	SessionController *controller_;
 	Coordinator *coordinator_;
 	StatusPill *session_;
 	StatusPill *silence_;
+	StatusPill *update_;
 	QHBoxLayout *badgeLayout_;
 	std::map<QString, DestinationBadge *> badges_;
 	DestinationBadge *radio_;

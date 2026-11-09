@@ -22,7 +22,7 @@
 <main class="wrap">
   <article id="es" lang="es">
     <h1>Política de privacidad</h1>
-    <p class="updated">Última actualización: 1 de noviembre de 2026.</p>
+    <p class="updated">Última actualización: 8 de noviembre de 2026.</p>
 
     <p>Multistream para OBS es un plugin gratuito y de código abierto para OBS Studio, mantenido por IO GT (Guatemala). Se ejecuta en el equipo de cada persona que lo instala y transmite solo a las cuentas, canales y páginas que esa persona conecta y autoriza.</p>
 
@@ -35,7 +35,8 @@
 
     <h2>Dónde se guardan</h2>
     <p>Las credenciales (por ejemplo, el token de actualización de Google) se guardan solo en el almacén seguro del sistema de ese equipo: Llavero de macOS, Administrador de credenciales de Windows o el llavero de Linux. Los nombres de canal, página y cuenta se guardan en la configuración local del plugin. Las llamadas a la API de YouTube van directamente del equipo a Google; ningún servidor de Multistream recibe datos de YouTube, ni el audio o el video de las transmisiones.</p>
-    <p>Para Facebook, un servicio de autorización alojado en Cloudflare intermedia el inicio de sesión: guarda el resultado cifrado durante un máximo de 5 minutos para entregarlo al plugin y conserva cada operación de transmisión cifrada durante 24 horas para evitar duplicados.</p>
+    <p>Para Facebook, un servicio de autorización alojado en Cloudflare intermedia el inicio de sesión: guarda el resultado cifrado durante un máximo de 5 minutos para entregarlo al plugin y conserva cada operación de transmisión cifrada durante 24 horas para evitar duplicados. Si cargás tu propia app de Meta, el plugin habla directo con Facebook, ese servicio no interviene y la clave secreta de tu app queda en el almacén seguro del equipo.</p>
+    <p>Para avisar cuando hay una versión nueva, el plugin consulta en GitHub la última versión publicada, como mucho una vez por día. La consulta no incluye datos de tus cuentas y se desactiva en el menú de Multistream («Avisar si hay una versión nueva»).</p>
     <p>Este sitio no usa cookies ni herramientas de analítica.</p>
 
     <h2>Uso limitado de datos de Google</h2>
@@ -58,7 +59,7 @@
 
   <article id="en" lang="en">
     <h1>Privacy policy</h1>
-    <p class="updated">Last updated: November 1, 2026.</p>
+    <p class="updated">Last updated: November 8, 2026.</p>
 
     <p>Multistream for OBS is a free, open-source plugin for OBS Studio maintained by IO GT (Guatemala). It runs on the computer of each person who installs it and streams only to the accounts, channels and Pages that person connects and authorizes.</p>
 
@@ -71,7 +72,8 @@
 
     <h2>Where it is stored</h2>
     <p>Credentials (for example, the Google refresh token) are stored only in the operating system's secure store on that computer: macOS Keychain, Windows Credential Manager or the Linux keyring. Channel, Page and account names are kept in the plugin's local settings. YouTube API calls go directly from the computer to Google; no Multistream server receives YouTube data, audio or video.</p>
-    <p>For Facebook, an authorization service hosted on Cloudflare handles the login: it keeps the encrypted result for at most 5 minutes to hand it to the plugin, and keeps each streaming operation encrypted for 24 hours to prevent duplicates.</p>
+    <p>For Facebook, an authorization service hosted on Cloudflare handles the login: it keeps the encrypted result for at most 5 minutes to hand it to the plugin, and keeps each streaming operation encrypted for 24 hours to prevent duplicates. If you load your own Meta app, the plugin talks to Facebook directly, that service is not involved, and your app secret stays in the computer's secure store.</p>
+    <p>To tell you when a new version is out, the plugin asks GitHub for the latest published release at most once a day. The request carries no account data and can be turned off in the Multistream menu ("Avisar si hay una versión nueva").</p>
     <p>This website does not use cookies or analytics.</p>
 
     <h2>Limited use of Google data</h2>

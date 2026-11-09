@@ -7,6 +7,8 @@
 #include "ui/session-controller.hpp"
 #include "ui/status-pill.hpp"
 
+#include <plugin-support.h>
+
 #include <QApplication>
 #include <QClipboard>
 #include <QHBoxLayout>
@@ -97,6 +99,7 @@ StatusStrip::StatusStrip(SessionController *controller, QWidget *parent)
 	  coordinator_(controller->coordinator()),
 	  session_(new StatusPill(StatusPill::Size::Compact, this)),
 	  silence_(new StatusPill(StatusPill::Size::Compact, this)),
+	  update_(new StatusPill(StatusPill::Size::Compact, this)),
 	  badgeLayout_(new QHBoxLayout()),
 	  radio_(new DestinationBadge(QStringLiteral("radio"), this)),
 	  settings_(new QToolButton(this))
@@ -130,7 +133,12 @@ StatusStrip::StatusStrip(SessionController *controller, QWidget *parent)
 	connect(radio_, &DestinationBadge::customContextMenuRequested, this, &StatusStrip::openRadioMenu);
 	connect(controller_->radio(), &radio::Station::changed, this, &StatusStrip::render);
 	layout->addSpacing(2);
+	layout->addWidget(update_);
 	layout->addWidget(settings_);
+	update_->setClickable(true);
+	update_->setVisible(false);
+	connect(update_, &StatusPill::clicked, this, &StatusStrip::openUpdateMenu);
+	connect(controller_->updates(), &UpdateChecker::changed, this, &StatusStrip::render);
 
 	connect(session_, &StatusPill::clicked, controller_, &SessionController::openStatusWindow);
 	connect(settings_, &QToolButton::clicked, this, &StatusStrip::openSettingsMenu);
@@ -176,6 +184,14 @@ void StatusStrip::render()
 		ticker_.start();
 	else if (!timed)
 		ticker_.stop();
+
+	const UpdateChecker *updates = controller_->updates();
+	update_->setVisible(updates->available() && !locked(state));
+	if (updates->available()) {
+		update_->setStatus(Tone::Ready, QStringLiteral("Nueva versión %1").arg(updates->latestVersion()));
+		update_->setToolTip(QStringLiteral("Hay una versión nueva de Multistream. Clic para descargarla."));
+		update_->setAccessibleName(QStringLiteral("Multistream %1 disponible").arg(updates->latestVersion()));
+	}
 
 	const AlertCenter *alerts = controller_->alerts();
 	silence_->setVisible(alerts->silent());
@@ -287,11 +303,30 @@ void StatusStrip::openDestinationMenu(DestinationBadge *badge)
 	actions.run(chosen);
 }
 
+void StatusStrip::openUpdateMenu()
+{
+	UpdateChecker *updates = controller_->updates();
+	QMenu menu(this);
+	MenuActions actions(menu);
+	addHeader(menu, QStringLiteral("Multistream %1").arg(updates->latestVersion()),
+		  QStringLiteral("Tenés la %1").arg(QString::fromUtf8(PLUGIN_VERSION)),
+		  QStringLiteral("Bajá el instalador nuevo y abrilo con OBS cerrado. Las cuentas y la configuración se conservan."));
+	actions.add(QStringLiteral("Descargar la versión nueva…"), [updates] { openInBrowser(updates->releaseUrl().toString()); });
+	actions.add(QStringLiteral("Ocultar este aviso"), [updates] { updates->dismiss(); });
+	actions.run(popupAbove(menu, update_));
+}
+
 void StatusStrip::openSettingsMenu()
 {
 	const SessionState state = coordinator_->state();
+	UpdateChecker *updates = controller_->updates();
 	QMenu menu(this);
 	MenuActions actions(menu);
+	if (updates->available()) {
+		actions.add(QStringLiteral("Descargar Multistream %1…").arg(updates->latestVersion()),
+			    [updates] { openInBrowser(updates->releaseUrl().toString()); });
+		menu.addSeparator();
+	}
 	const bool live = state == SessionState::Live || state == SessionState::Partial;
 	actions.add(live ? QStringLiteral("Finalizar transmisión…") : QStringLiteral("Transmitir…"), [this] { controller_->toggleStreaming(); },
 		    state != SessionState::Stopping && state != SessionState::Checking && state != SessionState::Preparing);
@@ -314,6 +349,9 @@ void StatusStrip::openSettingsMenu()
 	QAction *replace = actions.add(QStringLiteral("Iniciar desde el botón de OBS"), {});
 	replace->setCheckable(true);
 	replace->setChecked(controller_->replacesStreamButton());
+	QAction *updateWatch = actions.add(QStringLiteral("Avisar si hay una versión nueva"), {});
+	updateWatch->setCheckable(true);
+	updateWatch->setChecked(updates->enabled());
 	actions.add(QStringLiteral("Comprobar configuración…"), [this] { controller_->runDiagnostics(); });
 
 	QAction *chosen = popupAbove(menu, settings_);
@@ -323,6 +361,8 @@ void StatusStrip::openSettingsMenu()
 		alerts->setSoundEnabled(sound->isChecked());
 	else if (chosen == silenceWatch)
 		alerts->setSilenceWatchEnabled(silenceWatch->isChecked());
+	else if (chosen == updateWatch)
+		updates->setEnabled(updateWatch->isChecked());
 	else
 		actions.run(chosen);
 }

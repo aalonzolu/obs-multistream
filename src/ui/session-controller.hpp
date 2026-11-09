@@ -1,5 +1,6 @@
 #pragma once
 
+#include "net/update-checker.hpp"
 #include "orchestration/coordinator.hpp"
 #include "orchestration/scheduler.hpp"
 #include "radio/radio-station.hpp"
@@ -36,6 +37,7 @@ public:
 	radio::Station *radio() const { return radio_; }
 	Scheduler *scheduler() const { return scheduler_; }
 	AlertCenter *alerts() const { return alerts_; }
+	UpdateChecker *updates() const { return updates_; }
 	bool recording() const { return recordingOwned_; }
 	void startSession(const SessionRequest &request);
 	bool connecting(const QString &providerId) const { return connecting_.contains(providerId); }
@@ -74,6 +76,7 @@ private:
 	radio::Station *radio_;
 	Scheduler *scheduler_;
 	AlertCenter *alerts_;
+	UpdateChecker *updates_;
 	QString pendingScheduledId_;
 	bool recordingOwned_ = false;
 	bool radioStartedWithSession_ = false;

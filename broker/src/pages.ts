@@ -39,7 +39,7 @@ export function privacyPage(baseUrl: string, operator: Operator): string {
   return layout(
     "Política de privacidad · Multistream",
     `<h2>Política de privacidad</h2>
-<p><em>Última actualización: 1 de noviembre de 2026.</em></p>
+<p><em>Última actualización: 8 de noviembre de 2026.</em></p>
 <p>Multistream es un plugin de código abierto para OBS Studio${operator.name ? `; este servicio lo opera ${escape(operator.name)}` : ""}. Se ejecuta en el equipo de cada persona que lo instala y transmite solo a las cuentas y páginas que esa persona conecta y autoriza.</p>
 
 <h3>Datos que se usan</h3>
@@ -50,7 +50,7 @@ export function privacyPage(baseUrl: string, operator: Operator): string {
 </ul>
 
 <h3>Dónde se guardan</h3>
-<p>Las credenciales se guardan en el almacén seguro del sistema de ese equipo (Llavero de macOS, Administrador de credenciales de Windows o el llavero de Linux). Los nombres de canal, página y cuenta se guardan en la configuración local del plugin. El audio y el video nunca pasan por este servicio.</p>
+<p>Las credenciales se guardan en el almacén seguro del sistema de ese equipo (Llavero de macOS, Administrador de credenciales de Windows o el llavero de Linux). Los nombres de canal, página y cuenta se guardan en la configuración local del plugin. El audio y el video nunca pasan por este servicio. Para avisar cuando hay una versión nueva, el plugin consulta en GitHub la última versión publicada, como mucho una vez por día y sin datos de tus cuentas; se desactiva en el menú de Multistream.</p>
 <p>Este servicio en <code>${escape(baseUrl)}</code> solo procesa la autorización de Facebook: guarda el resultado cifrado durante un máximo de 5 minutos para entregarlo al plugin y conserva cada operación de transmisión cifrada durante 24 horas para evitar duplicados.</p>
 
 <h3>Uso limitado de datos de Google</h3>

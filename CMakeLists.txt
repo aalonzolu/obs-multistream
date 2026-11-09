@@ -70,6 +70,8 @@ target_sources(
     src/net/http-client.hpp
     src/net/loopback-receiver.cpp
     src/net/loopback-receiver.hpp
+    src/net/update-checker.cpp
+    src/net/update-checker.hpp
     src/orchestration/coordinator.cpp
     src/orchestration/coordinator.hpp
     src/orchestration/scheduler.cpp

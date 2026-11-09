@@ -50,6 +50,9 @@ public:
 	QJsonObject apps() const;
 	void setApps(const QJsonObject &values);
 
+	QJsonObject updates() const;
+	void setUpdates(const QJsonObject &values);
+
 private:
 	Settings();
 	void save();

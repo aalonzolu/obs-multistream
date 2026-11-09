@@ -12,6 +12,7 @@
 #include "ui/status-window.hpp"
 
 #include <obs-frontend-api.h>
+#include <plugin-support.h>
 
 #include <QCheckBox>
 #include <QInputDialog>
@@ -28,6 +29,7 @@ SessionController::SessionController(Coordinator *coordinator, radio::Station *r
 	  radio_(radio),
 	  scheduler_(scheduler),
 	  alerts_(alerts),
+	  updates_(new UpdateChecker(QString::fromUtf8(PLUGIN_VERSION), this)),
 	  window_(window)
 {
 	connect(coordinator_, &Coordinator::changed, this, &SessionController::onActivityChanged);

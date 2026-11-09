@@ -16,6 +16,7 @@ const QString kProviders = QStringLiteral("providers");
 const QString kSelected = QStringLiteral("selected");
 const QString kTemplates = QStringLiteral("templates");
 const QString kApps = QStringLiteral("apps");
+const QString kUpdates = QStringLiteral("updates");
 constexpr int kMaxTemplates = 12;
 
 QJsonObject toJson(const StreamTemplate &t)
@@ -228,6 +229,17 @@ QJsonObject Settings::apps() const
 void Settings::setApps(const QJsonObject &values)
 {
 	root_.insert(kApps, values);
+	save();
+}
+
+QJsonObject Settings::updates() const
+{
+	return root_.value(kUpdates).toObject();
+}
+
+void Settings::setUpdates(const QJsonObject &values)
+{
+	root_.insert(kUpdates, values);
 	save();
 }
 

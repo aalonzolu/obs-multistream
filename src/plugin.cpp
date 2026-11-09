@@ -192,6 +192,7 @@ void Plugin::onFinishedLoading()
 {
 	installStatusStrip();
 	takeOverStreamButton();
+	controller_->updates()->start();
 	if (!vendor_.registerWithObsWebsocket())
 		obs_log(LOG_INFO, "obs-websocket not available; automation requests disabled");
 }
@@ -296,6 +297,19 @@ void Plugin::registerCaptureRequests()
 		else if (!apps::saveMeta({text(meta, "app_id"), text(meta, "app_secret"), text(meta, "config_id")}, &error))
 			return failure(error);
 		return success({{QStringLiteral("custom_google"), apps::customGoogle().has_value()}, {QStringLiteral("custom_meta"), apps::customMeta().has_value()}});
+	});
+
+	vendor_.add(QStringLiteral("DevCheckUpdates"), [this](const QJsonObject &request) {
+		controller_->updates()->check(QUrl(text(request, "source")), true);
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("DevUpdateStatus"), [this](const QJsonObject &) {
+		const UpdateChecker *updates = controller_->updates();
+		return success({{QStringLiteral("enabled"), updates->enabled()},
+				{QStringLiteral("available"), updates->available()},
+				{QStringLiteral("latest"), updates->latestVersion()},
+				{QStringLiteral("url"), updates->releaseUrl().toString()}});
 	});
 
 	vendor_.add(QStringLiteral("DevSnapshot"), [this](const QJsonObject &request) {
