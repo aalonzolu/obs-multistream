@@ -1,6 +1,8 @@
-# obs-multistream
+# Multistream para OBS
 
-Plugin para OBS Studio que transmite a Facebook, YouTube, TikTok y una radio Icecast con un solo botón, sin copiar claves RTMP ni tokens.
+Plugin gratis y de código abierto para OBS Studio que transmite en Facebook, YouTube y TikTok al mismo tiempo, además de cualquier servidor RTMP y una radio Icecast, con un solo botón y sin copiar claves RTMP ni pagar Restream. Windows, macOS y Linux. Sitio y descargas: [multistream.lexo.dev](https://multistream.lexo.dev/).
+
+*English:* free, open-source OBS multistream plugin. Stream to YouTube, Facebook, TikTok, any RTMP server and Icecast radio at once, with no stream keys to copy. See [multistream.lexo.dev/en](https://multistream.lexo.dev/en/).
 
 ![OBS al aire con Multistream](docs/manual/capturas/00-obs-al-aire.png)
 
@@ -11,7 +13,7 @@ Plugin para OBS Studio que transmite a Facebook, YouTube, TikTok y una radio Ice
 - **Destinos RTMP propios** (Kick, Vimeo, un servidor propio), **grabación local** a la vez y **avisos** con sonido cuando un destino se cae o el audio queda en silencio.
 - Todo vive en la barra de estado de OBS; no agrega paneles.
 
-**Estado:** probado en macOS con las tres plataformas y una radio AzuraCast. Windows se compila en GitHub Actions y está pendiente de probar en un equipo real.
+**Estado:** probado en macOS con las tres plataformas y una radio AzuraCast. Windows tiene instalador desde la 0.2.0 y está pendiente de probar en un equipo real. Requiere OBS Studio 33 o más reciente.
 
 | Documento | Contenido |
 |---|---|

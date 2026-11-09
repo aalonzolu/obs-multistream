@@ -1,0 +1,27 @@
+# Multistream para OBS (Multistream for OBS)
+
+> Plugin gratis y de código abierto (GPL-2.0) para OBS Studio 33 o más reciente que transmite al mismo tiempo en Facebook, YouTube, TikTok, cualquier servidor RTMP (Kick, Vimeo, propio) y una radio Icecast, AzuraCast o Liquidsoap. Crea y cierra cada directo por la API de cada plataforma, así que no hay que copiar claves de transmisión. Funciona en Windows 10/11 (con instalador), macOS 13+ y Linux. La interfaz está en español.
+>
+> Free, open-source (GPL-2.0) OBS Studio plugin that streams to YouTube, Facebook, TikTok, any RTMP server and Icecast radio at the same time, creating and ending each broadcast through the platform APIs, with no stream keys to copy. It is a self-hosted alternative to Restream: video goes straight from the computer to each platform, so upload bandwidth must cover one stream per destination.
+
+Datos clave / key facts:
+
+- Precio: gratis, sin marca de agua ni límite de destinos. Price: free, no watermark, no destination limit.
+- Requisitos: OBS Studio 33+, Windows 10/11 64 bits, macOS 13+, Linux 64 bits fuera de Flatpak.
+- TikTok: requiere una cuenta con acceso a LIVE vía Streamlabs.
+- Extras: programar directos de YouTube, reconexión por destino, grabar a la vez, avisos si un destino se cae o si no hay audio, aviso de versión nueva.
+- Usos típicos: iglesias (culto o misa en vivo), eventos, radios comunitarias, creadores.
+
+## Docs
+
+- [Inicio (español)](https://multistream.lexo.dev/): qué hace, capturas, instalación y preguntas frecuentes.
+- [Home (English)](https://multistream.lexo.dev/en/): the same in English.
+- [Manual](https://github.com/aalonzolu/obs-multistream/blob/main/docs/manual/README.md): cómo conectar cuentas, transmitir, programar y configurar la radio.
+- [Apps propias](https://multistream.lexo.dev/apps/): cómo crear tu propia app de Google (YouTube) y de Meta (Facebook) y cargarlas en el plugin.
+- [Descargas](https://github.com/aalonzolu/obs-multistream/releases/latest): instalador de Windows y paquetes para macOS y Linux.
+
+## Optional
+
+- [Código fuente](https://github.com/aalonzolu/obs-multistream)
+- [Privacidad](https://multistream.lexo.dev/privacy/)
+- [Condiciones](https://multistream.lexo.dev/terms/)

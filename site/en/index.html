@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OBS Multistream Plugin: YouTube, Facebook and TikTok at Once</title>
+<meta name="description" content="Free, open-source OBS multistream plugin. Stream to YouTube, Facebook, TikTok, any RTMP server and Icecast radio at once, with no stream keys and no Restream fees.">
+<link rel="canonical" href="https://multistream.lexo.dev/en/">
+<link rel="alternate" hreflang="es" href="https://multistream.lexo.dev/">
+<link rel="alternate" hreflang="en" href="https://multistream.lexo.dev/en/">
+<link rel="alternate" hreflang="x-default" href="https://multistream.lexo.dev/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Multistream for OBS">
+<meta property="og:url" content="https://multistream.lexo.dev/en/">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="es_LA">
+<meta property="og:title" content="OBS Multistream Plugin: YouTube, Facebook and TikTok at Once">
+<meta property="og:description" content="Free OBS plugin: one button sends your stream to YouTube, Facebook, TikTok and your radio at the same time.">
+<meta property="og:image" content="https://multistream.lexo.dev/capturas/00-obs-al-aire.png">
+<meta property="og:image:width" content="1490">
+<meta property="og:image:height" content="947">
+<meta name="twitter:card" content="summary_large_image">
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "SoftwareApplication",
+ "name": "Multistream for OBS",
+ "alternateName": [
+  "Multistream para OBS",
+  "obs-multistream",
+  "OBS multistream plugin"
+ ],
+ "description": "Free, open-source OBS Studio plugin that streams to YouTube, Facebook, TikTok, RTMP servers and Icecast radio at the same time.",
+ "url": "https://multistream.lexo.dev/en/",
+ "applicationCategory": "MultimediaApplication",
+ "applicationSubCategory": "OBS Studio plugin",
+ "operatingSystem": "Windows 10, Windows 11, macOS 13 or later, Linux",
+ "offers": {
+  "@type": "Offer",
+  "price": "0",
+  "priceCurrency": "USD"
+ },
+ "license": "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html",
+ "downloadUrl": "https://github.com/aalonzolu/obs-multistream/releases/latest",
+ "image": "https://multistream.lexo.dev/capturas/00-obs-al-aire.png",
+ "screenshot": "https://multistream.lexo.dev/capturas/02-ventana-transmitir.png",
+ "featureList": [
+  "Stream to YouTube, Facebook and TikTok at the same time",
+  "Any RTMP server: Kick, Vimeo or your own",
+  "Icecast, AzuraCast or Liquidsoap radio",
+  "Schedule YouTube broadcasts",
+  "Per-destination reconnection",
+  "Record while streaming"
+ ],
+ "inLanguage": "en",
+ "publisher": {
+  "@type": "Organization",
+  "name": "IO GT"
+ },
+ "sameAs": [
+  "https://github.com/aalonzolu/obs-multistream"
+ ]
+}
+</script>
+<script type="application/ld+json">
+{
+ "@context": "https://schema.org",
+ "@type": "FAQPage",
+ "inLanguage": "en",
+ "mainEntity": [
+  {
+   "@type": "Question",
+   "name": "How do I stream to YouTube and Facebook at the same time with OBS?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "OBS on its own streams to one destination. With Multistream you connect your accounts once, press the start button and pick YouTube, Facebook, TikTok or any RTMP server. The plugin creates each live broadcast with its title and description, sends the same signal to all of them and ends them when you stop."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Is it free? Does it add a watermark?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Yes, it is free and open source under the GPL-2.0 license. There is no watermark, no limit on destinations and no subscription."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Is it a Restream alternative?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Yes. Unlike Restream and other cloud services, the video goes straight from your computer to each platform, with no middleman and no paid plan. The trade-off is upload bandwidth: your connection sends one stream per destination, so three destinations at 6 Mbps need about 18 Mbps of upload."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Can I go live on TikTok from OBS?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Yes, if your TikTok account has LIVE access through Streamlabs. Multistream fetches the stream key for each broadcast, so you never copy it by hand."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "How is it different from a multiple RTMP outputs plugin?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Those plugins send your stream to servers and keys you paste by hand. Multistream also creates and ends the broadcasts on each platform, warns you when one drops, retries on the same broadcast and can send the audio to an Icecast radio."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Can churches use it to stream services?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "Yes, that is what it was built for. Templates put the date in each week's title, you can schedule the YouTube broadcast and share the link ahead of time, and the radio goes out together with the video."
+   }
+  },
+  {
+   "@type": "Question",
+   "name": "Which systems does it run on?",
+   "acceptedAnswer": {
+    "@type": "Answer",
+    "text": "64-bit Windows 10 and 11, macOS 13 or later and 64-bit Linux, with OBS Studio 33 or later. Windows has an installer. The interface is in Spanish for now."
+   }
+  }
+ ]
+}
+</script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='9' fill='%23E5243B'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../home.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <a class="mark" href="#">
+      <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="10" fill="none" stroke="#e5243b" stroke-width="1.6" opacity=".55"/><circle class="live-dot" cx="11" cy="11" r="5.5" fill="#e5243b"/></svg>
+      Multistream
+    </a>
+    <nav aria-label="Main">
+      <a class="optional" href="#how-it-works">How it works</a>
+      <a href="#install">Install</a>
+      <a class="optional" href="#faq">FAQ</a>
+      <a class="lang" href="../" hreflang="es" lang="es">Español</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div class="wrap hero">
+    <h1>YouTube, Facebook and TikTok <em>at once</em>, from OBS.</h1>
+    <p class="lede">Multistream is a free, open-source plugin for OBS Studio: one button streams to YouTube, Facebook, TikTok, any RTMP server and your Icecast radio at the same time, without copying stream keys or paying for Restream. For Windows, macOS and Linux.</p>
+    <div class="actions">
+      <a class="button primary" href="#install">Install Multistream</a>
+      <a class="button quiet" href="https://github.com/aalonzolu/obs-multistream">View the source</a>
+    </div>
+    <figure class="shot">
+      <img src="../capturas/00-obs-al-aire.png" width="1490" height="947" alt="OBS Studio live. At the bottom left, the status bar shows the time on air and one icon per destination.">
+      <div class="callout"><img src="../capturas/04-barra-al-aire.png" width="730" height="68" alt="Status bar showing the time on air and the Facebook, YouTube, TikTok and radio icons with their red indicator."></div>
+      <figcaption>Everything lives in the OBS status bar: no extra docks, and your scenes stay as they are.</figcaption>
+    </figure>
+  </div>
+
+  <section id="how-it-works">
+    <div class="wrap">
+      <h2>Built for whoever runs the stream, not for whoever configures servers.</h2>
+      <p class="intro">Accounts are connected once. After that, the operator only picks a title and destinations, and keeps an eye on everything staying red.</p>
+
+      <div class="feature">
+        <div class="copy">
+          <h3>One window to go live everywhere</h3>
+          <p>Title, description and destinations in one place. Recent broadcasts become templates: with <strong>{fecha}</strong> and <strong>{hora}</strong> (date and time), each week's title fills itself in.</p>
+          <ul>
+            <li>Per-platform options on each row: YouTube visibility, set the Facebook video to private when it ends, a warning when TikTok will cut the title.</li>
+            <li>Estimated upload bandwidth before you go live.</li>
+            <li>If something is missing, the button says what.</li>
+          </ul>
+        </div>
+        <figure><img src="../capturas/02-ventana-transmitir.png" width="1760" height="1120" alt="Start window with recent broadcasts on the left, title, description and the Facebook, YouTube, TikTok and radio destinations."></figure>
+      </div>
+
+      <div class="feature flip">
+        <figure><img src="../capturas/05-estado-al-aire.png" width="1200" height="892" alt="Status window: the four destinations live, with data sent and dropped frames."></figure>
+        <div class="copy">
+          <h3>One glance tells you what is live</h3>
+          <p>Each destination has an indicator with its own shape and color: ready, sending, live, reconnecting or needs attention. Clicking any icon shows the full status, with a button to open each broadcast.</p>
+        </div>
+      </div>
+
+      <div class="feature">
+        <div class="copy">
+          <h3>If one destination drops, the rest keep going</h3>
+          <p>Each platform has its own connection. After a drop, Multistream retries on the same broadcast by itself; if it cannot, that destination is flagged and fixed on its own.</p>
+          <ul>
+            <li><strong>Retry</strong>: back to the same broadcast, with the same viewers.</li>
+            <li><strong>New broadcast</strong>: creates another one on that destination only and ends the old one.</li>
+          </ul>
+        </div>
+        <figure><img src="../capturas/08-estado-parcial.png" width="1200" height="1000" alt="TikTok without signal and a Retry button, while Facebook, YouTube and the radio stay live."></figure>
+      </div>
+
+      <div class="feature flip">
+        <figure class="tall"><img src="../capturas/10-configurar-radio.png" width="1040" height="1642" alt="Radio settings: Icecast server, AAC at 192 kbps, audio track and station details."></figure>
+        <div class="copy">
+          <h3>Your radio, without another app</h3>
+          <p>Sends OBS audio to Icecast, AzuraCast or Liquidsoap, alone or together with the video. Replaces apps like BUTT and imports their settings.</p>
+          <ul>
+            <li>MP3, AAC, Opus, Vorbis or lossless FLAC.</li>
+            <li>Any OBS audio track, for a separate mix.</li>
+            <li>Reconnects by itself; the password stays in the system keychain.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>The details that matter once you are live.</h2>
+      <dl class="details">
+        <div><dt>Confirmation before ending</dt><dd>Ending asks for confirmation, and if the radio started with the video, it asks whether to stop it too.</dd></div>
+        <div><dt>Recovery after a crash</dt><dd>If OBS is force-closed, on the next start it tells you a broadcast was left open and ends it on each platform.</dd></div>
+        <div><dt>No stream keys in sight</dt><dd>Accounts are authorized in the browser and credentials stay in the macOS Keychain, Windows Credential Manager or the Linux secret service. That access is only used to create and manage your broadcasts; see the <a href="../privacy/#en">privacy policy</a>.</dd></div>
+        <div><dt>One encoder</dt><dd>The same encoded video feeds every destination, so CPU load does not multiply.</dd></div>
+        <div><dt>Schedule ahead</dt><dd>Create the YouTube broadcast with a date and time, share the link, and on the day stream into that same broadcast.</dd></div>
+        <div><dt>Audible alerts</dt><dd>If a destination or the radio drops, or the audio goes silent for 20 seconds, Multistream warns you before the comments do.</dd></div>
+        <div><dt>Any RTMP server</dt><dd>Kick, Vimeo or your own server are added with their server and key, like any other destination.</dd></div>
+        <div><dt>Record at the same time</dt><dd>One checkbox records locally while you stream, so you keep the file without depending on the platforms.</dd></div>
+        <div><dt>Keyboard shortcuts</dt><dd>Start and end are assigned in the OBS hotkeys, like any other action.</dd></div>
+        <div><dt>Made for the OBS theme</dt><dd>Follows light and dark themes, works with the keyboard, and no state relies on color alone.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <section id="install">
+    <div class="wrap">
+      <h2>Install</h2>
+      <div class="install">
+        <ol>
+          <li><strong>Download Multistream</strong><span>From <a href="https://github.com/aalonzolu/obs-multistream/releases/latest">the latest release</a> on GitHub. On Windows, get the <code>…-windows-x64-instalador.exe</code> installer; on macOS and Linux, the <code>.zip</code> for your system.</span></li>
+          <li><strong>Install it with OBS closed</strong><span>Windows: run the installer; it puts the plugin in the right folder. If Windows shows “Windows protected your PC”, choose “More info” and “Run anyway”. macOS: move <code>obs-multistream.plugin</code> to <code>~/Library/Application Support/obs-studio/plugins</code> and clear the quarantine flag as the <a href="https://github.com/aalonzolu/obs-multistream/releases/latest">release notes</a> explain. Linux: unzip it into <code>~/.config/obs-studio/plugins</code>.</span></li>
+          <li><strong>Open OBS and connect your accounts</strong><span>Click any icon in the status bar and choose “Conectar” (Connect) for each platform.</span></li>
+          <li><strong>Press start</strong><span>Pick a title and destinations, and go live.</span></li>
+        </ol>
+        <div class="requirements">
+          <h3>Requirements</h3>
+          <ul>
+            <li>OBS Studio 33 or later (Help → About in OBS).</li>
+            <li>64-bit Windows 10/11, macOS 13 or later, or 64-bit Linux with OBS outside Flatpak.</li>
+            <li>A Facebook Page, a YouTube channel enabled for live streaming and, for TikTok, an account with LIVE access through Streamlabs.</li>
+            <li>For radio: an Icecast, AzuraCast or Liquidsoap server.</li>
+            <li>The interface is in Spanish for now.</li>
+          </ul>
+          <p>Google or Meta will not let your account connect? You can <a href="../apps/">use your own Google and Meta apps</a> (guide in Spanish).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="faq">
+    <div class="wrap">
+      <h2>Frequently asked questions</h2>
+      <div class="faq">
+        <div><h3>How do I stream to YouTube and Facebook at the same time with OBS?</h3><p>OBS on its own streams to one destination. With Multistream you connect your accounts once, press the start button and pick YouTube, Facebook, TikTok or any RTMP server. The plugin creates each live broadcast with its title and description, sends the same signal to all of them and ends them when you stop.</p></div>
+        <div><h3>Is it free? Does it add a watermark?</h3><p>Yes, it is free and open source under the GPL-2.0 license. There is no watermark, no limit on destinations and no subscription.</p></div>
+        <div><h3>Is it a Restream alternative?</h3><p>Yes. Unlike Restream and other cloud services, the video goes straight from your computer to each platform, with no middleman and no paid plan. The trade-off is upload bandwidth: your connection sends one stream per destination, so three destinations at 6 Mbps need about 18 Mbps of upload.</p></div>
+        <div><h3>Can I go live on TikTok from OBS?</h3><p>Yes, if your TikTok account has LIVE access through Streamlabs. Multistream fetches the stream key for each broadcast, so you never copy it by hand.</p></div>
+        <div><h3>How is it different from a multiple RTMP outputs plugin?</h3><p>Those plugins send your stream to servers and keys you paste by hand. Multistream also creates and ends the broadcasts on each platform, warns you when one drops, retries on the same broadcast and can send the audio to an Icecast radio.</p></div>
+        <div><h3>Can churches use it to stream services?</h3><p>Yes, that is what it was built for. Templates put the date in each week's title, you can schedule the YouTube broadcast and share the link ahead of time, and the radio goes out together with the video.</p></div>
+        <div><h3>Which systems does it run on?</h3><p>64-bit Windows 10 and 11, macOS 13 or later and 64-bit Linux, with OBS Studio 33 or later. Windows has an installer. The interface is in Spanish for now.</p></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Multistream is free software under the GPL-2.0 license · <a href="https://github.com/aalonzolu/obs-multistream">Source code</a> · <a href="../privacy/#en">Privacy</a> · <a href="../terms/#en">Terms</a> · <a href="../" hreflang="es" lang="es">Español</a></p>
+    <p>Not affiliated with the OBS Project, Meta, Google, TikTok or Streamlabs.</p>
+  </div>
+</footer>
+</body>
+</html>
