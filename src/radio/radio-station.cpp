@@ -1,5 +1,6 @@
 #include "radio/radio-station.hpp"
 
+#include "core/i18n.hpp"
 #include "net/http-client.hpp"
 #include "radio/radio-stream.hpp"
 
@@ -46,11 +47,11 @@ void Station::start(const QString &title)
 		return;
 	config_ = load();
 	if (!config_.configured()) {
-		setState(RadioState::Failed, QStringLiteral("Configurá el servidor de la radio antes de transmitir."));
+		setState(RadioState::Failed, i18n("Configurá el servidor de la radio antes de transmitir."));
 		return;
 	}
 	if (!password()) {
-		setState(RadioState::Failed, QStringLiteral("Falta la contraseña del servidor de la radio."));
+		setState(RadioState::Failed, i18n("Falta la contraseña del servidor de la radio."));
 		return;
 	}
 	title_ = title;

@@ -1,5 +1,6 @@
 #include "providers/meta-local-broker.hpp"
 
+#include "core/i18n.hpp"
 #include "net/loopback-receiver.hpp"
 #include "providers/provider.hpp"
 #include "security/pkce.hpp"
@@ -41,10 +42,10 @@ Error graphFailure(const GraphReply &reply, bool createsRemoteResource = false)
 	if (reply.response.delivery != Delivery::Answered || (reply.code == 0 && !reply.response.success()))
 		return errorFromResponse(reply.response, kName, createsRemoteResource);
 	if (reply.code == 190 || reply.code == 102)
-		return Error::make(ErrorKind::AuthRequired, QStringLiteral("AUTH_REQUIRED"), QStringLiteral("Necesitamos que vuelvas a autorizar Facebook."));
+		return Error::make(ErrorKind::AuthRequired, QStringLiteral("AUTH_REQUIRED"), i18n("Necesitamos que vuelvas a autorizar Facebook."));
 	if (reply.code == 1 || reply.code == 2 || reply.code == 4 || reply.code == 17)
 		return Error::make(createsRemoteResource ? ErrorKind::Uncertain : ErrorKind::Rejected, QStringLiteral("UPSTREAM"),
-				   QStringLiteral("Facebook falló temporalmente: %1").arg(reply.message));
+				   i18n("Facebook falló temporalmente: %1").arg(reply.message));
 	return Error::make(ErrorKind::Rejected, QStringLiteral("META_ERROR"), reply.message);
 }
 
@@ -86,7 +87,7 @@ void MetaLocalBroker::request(const QString &path, const QJsonObject &body, Call
 	const std::optional<MetaApp> app = apps::customMeta();
 	if (!app || app->appSecret.isEmpty()) {
 		done(fail(Error::make(ErrorKind::NotConfigured, QStringLiteral("NO_APP"),
-				      QStringLiteral("Falta el App ID o la clave secreta de tu app de Meta."))));
+				      i18n("Falta el App ID o la clave secreta de tu app de Meta."))));
 		return;
 	}
 	if (app->appId != app_.appId || app->appSecret != app_.appSecret)
@@ -105,7 +106,7 @@ void MetaLocalBroker::request(const QString &path, const QJsonObject &body, Call
 			return;
 		}
 		if (status_ != QStringLiteral("ready")) {
-			done(fail(Error::make(ErrorKind::Cancelled, QStringLiteral("NOT_READY"), QStringLiteral("La autorización todavía no está lista."))));
+			done(fail(Error::make(ErrorKind::Cancelled, QStringLiteral("NOT_READY"), i18n("La autorización todavía no está lista."))));
 			return;
 		}
 		if (action == QStringLiteral("result")) {
@@ -130,7 +131,7 @@ void MetaLocalBroker::request(const QString &path, const QJsonObject &body, Call
 								   {QStringLiteral("page_token"), page.value(QStringLiteral("access_token"))}}));
 				return;
 			}
-			done(fail(Error::make(ErrorKind::Rejected, QStringLiteral("NOT_FOUND"), QStringLiteral("Esa página no está entre las autorizadas."))));
+			done(fail(Error::make(ErrorKind::Rejected, QStringLiteral("NOT_FOUND"), i18n("Esa página no está entre las autorizadas."))));
 			return;
 		}
 		status_.clear();
@@ -168,7 +169,7 @@ void MetaLocalBroker::request(const QString &path, const QJsonObject &body, Call
 			endLive(id, body, done);
 		return;
 	}
-	done(fail(Error::make(ErrorKind::Internal, QStringLiteral("NOT_FOUND"), QStringLiteral("Operación de Facebook desconocida: %1").arg(path))));
+	done(fail(Error::make(ErrorKind::Internal, QStringLiteral("NOT_FOUND"), i18n("Operación de Facebook desconocida: %1").arg(path))));
 }
 
 void MetaLocalBroker::graph(const QByteArray &method, const QString &path, const QString &token, const GraphParams &params, GraphDone done)
@@ -248,7 +249,7 @@ Result<QJsonObject> MetaLocalBroker::startLogin()
 
 	connect(receiver, &LoopbackReceiver::received, this, [this](const QUrlQuery &params, const QString &) {
 		if (params.queryItemValue(QStringLiteral("state")) != state_) {
-			failLogin(QStringLiteral("La respuesta de Facebook no corresponde a este intento."));
+			failLogin(i18n("La respuesta de Facebook no corresponde a este intento."));
 			return;
 		}
 		const QString code = params.queryItemValue(QStringLiteral("code"));
@@ -278,7 +279,7 @@ void MetaLocalBroker::completeLogin(const QString &code)
 	      [this](const GraphReply &exchanged) {
 		      const QString shortLived = exchanged.data.value(QStringLiteral("access_token")).toString();
 		      if (shortLived.isEmpty()) {
-			      failLogin(QStringLiteral("Facebook no completó la autorización: %1")
+			      failLogin(i18n("Facebook no completó la autorización: %1")
 						.arg(exchanged.message.isEmpty() ? exchanged.response.describe() : exchanged.message));
 			      return;
 		      }
@@ -289,7 +290,7 @@ void MetaLocalBroker::completeLogin(const QString &code)
 				    graph("GET", QStringLiteral("/me"), token, {{QStringLiteral("fields"), QStringLiteral("id,name")}},
 					  [this, token](const GraphReply &me) {
 						  if (!me.ok()) {
-							  failLogin(QStringLiteral("No pudimos leer tu cuenta de Facebook: %1").arg(graphFailure(me).message));
+							  failLogin(i18n("No pudimos leer tu cuenta de Facebook: %1").arg(graphFailure(me).message));
 							  return;
 						  }
 						  collectPages(token, {{QStringLiteral("id"), me.data.value(QStringLiteral("id"))},
@@ -305,7 +306,7 @@ void MetaLocalBroker::collectPages(const QString &userToken, const QJsonObject &
 	      {{QStringLiteral("fields"), QStringLiteral("id,name,access_token,tasks")}, {QStringLiteral("limit"), QStringLiteral("100")}},
 	      [this, userToken, user](const GraphReply &accounts) {
 		      if (!accounts.ok()) {
-			      failLogin(QStringLiteral("No pudimos leer tus páginas: %1").arg(graphFailure(accounts).message));
+			      failLogin(i18n("No pudimos leer tus páginas: %1").arg(graphFailure(accounts).message));
 			      return;
 		      }
 		      QJsonArray pages;
@@ -365,7 +366,7 @@ void MetaLocalBroker::checkPage(const QJsonObject &body, Callback<QJsonObject> d
 	const QString token = body.value(QStringLiteral("page_token")).toString();
 	const QString pageId = body.value(QStringLiteral("page_id")).toString();
 	if (token.isEmpty() || pageId.isEmpty()) {
-		done(badRequest(QStringLiteral("Falta la página de Facebook.")));
+		done(badRequest(i18n("Falta la página de Facebook.")));
 		return;
 	}
 	debugToken(token, [this, token, pageId, done](const GraphReply &debug) {
@@ -375,7 +376,7 @@ void MetaLocalBroker::checkPage(const QJsonObject &body, Callback<QJsonObject> d
 		}
 		const QJsonObject info = debug.data.value(QStringLiteral("data")).toObject();
 		if (!info.value(QStringLiteral("is_valid")).toBool() || info.value(QStringLiteral("app_id")).toString() != app_.appId) {
-			done(fail(Error::make(ErrorKind::AuthRequired, QStringLiteral("AUTH_REQUIRED"), QStringLiteral("Necesitamos que vuelvas a autorizar Facebook."))));
+			done(fail(Error::make(ErrorKind::AuthRequired, QStringLiteral("AUTH_REQUIRED"), i18n("Necesitamos que vuelvas a autorizar Facebook."))));
 			return;
 		}
 		QStringList granted;
@@ -388,7 +389,7 @@ void MetaLocalBroker::checkPage(const QJsonObject &body, Callback<QJsonObject> d
 		}
 		if (!missing.isEmpty()) {
 			done(fail(Error::make(ErrorKind::AuthRequired, QStringLiteral("AUTH_REQUIRED"),
-					      QStringLiteral("Faltan permisos de Facebook: %1.").arg(missing.join(QStringLiteral(", "))))));
+					      i18n("Faltan permisos de Facebook: %1.").arg(missing.join(QStringLiteral(", "))))));
 			return;
 		}
 		graph("GET", QStringLiteral("/") + pageId, token, {{QStringLiteral("fields"), QStringLiteral("id,name")}}, [done](const GraphReply &page) {
@@ -447,7 +448,7 @@ void MetaLocalBroker::scheduleLive(const QJsonObject &body, const QByteArray &ke
 	const qint64 startTime = static_cast<qint64>(body.value(QStringLiteral("start_time")).toDouble());
 	const qint64 now = QDateTime::currentSecsSinceEpoch();
 	if (startTime < now + kMinScheduleLeadSeconds || startTime > now + kMaxScheduleLeadSeconds) {
-		done(badRequest(QStringLiteral("Facebook permite programar entre 10 minutos y 7 días antes.")));
+		done(badRequest(i18n("Facebook permite programar entre 10 minutos y 7 días antes.")));
 		return;
 	}
 	GraphParams base = {{QStringLiteral("status"), QStringLiteral("SCHEDULED_UNPUBLISHED")},
@@ -460,7 +461,7 @@ void MetaLocalBroker::scheduleLive(const QJsonObject &body, const QByteArray &ke
 		if (!created.ok()) {
 			if (created.code == 3 || created.code == 10 || created.code == 200) {
 				done(fail(Error::make(ErrorKind::Rejected, QStringLiteral("UNSUPPORTED"),
-						      QStringLiteral("Tu app de Meta no tiene permiso para programar directos. Transmitir al momento sigue funcionando."))));
+						      i18n("Tu app de Meta no tiene permiso para programar directos. Transmitir al momento sigue funcionando."))));
 				return;
 			}
 			done(fail(graphFailure(created, true)));

@@ -1,5 +1,7 @@
 #include "security/secret-store.hpp"
 
+#include "core/i18n.hpp"
+
 #include <CoreFoundation/CoreFoundation.h>
 #include <Security/Security.h>
 
@@ -58,7 +60,7 @@ bool available()
 
 QString backendName()
 {
-	return QStringLiteral("Llavero de macOS");
+	return i18n("Llavero de macOS");
 }
 
 bool write(const QString &name, const QByteArray &value, QString *error)

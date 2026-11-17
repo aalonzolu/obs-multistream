@@ -55,6 +55,8 @@ target_sources(
     src/plugin-main.cpp
     src/plugin.cpp
     src/plugin.hpp
+    src/core/i18n.cpp
+    src/core/i18n.hpp
     src/core/result.hpp
     src/media/encoder-pool.cpp
     src/media/encoder-pool.hpp

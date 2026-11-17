@@ -1,5 +1,6 @@
 #include "ui/status-window.hpp"
 
+#include "core/i18n.hpp"
 #include "providers/provider.hpp"
 #include "ui/alert-center.hpp"
 #include "ui/destination-row.hpp"
@@ -74,7 +75,7 @@ StatusWindow::StatusWindow(SessionController *controller, QWidget *parent)
 	  noticeSecondary_(new QPushButton(notice_)),
 	  primary_(new PrimaryAction(this))
 {
-	setWindowTitle(QStringLiteral("Estado de la transmisión"));
+	setWindowTitle(i18n("Estado de la transmisión"));
 	setMinimumWidth(600);
 
 	QFont titleFont = title_->font();
@@ -119,7 +120,7 @@ StatusWindow::StatusWindow(SessionController *controller, QWidget *parent)
 	noticeLayout->addWidget(noticeSecondary_);
 	noticeLayout->addWidget(noticePrimary_);
 
-	auto *diagnostics = new QPushButton(QStringLiteral("Comprobar configuración"), this);
+	auto *diagnostics = new QPushButton(i18n("Comprobar configuración"), this);
 	diagnostics->setAutoDefault(false);
 	diagnostics->setFlat(true);
 	primary_->setFixedSize(220, 46);
@@ -201,7 +202,7 @@ void StatusWindow::render()
 	Presentation session = presentationFor(state, targets, recovered);
 	if (session.label.isEmpty()) {
 		const bool anyReady = std::any_of(targets.begin(), targets.end(), [](const TargetView &v) { return v.state == TargetState::Ready; });
-		session = {anyReady ? Tone::Ready : Tone::Idle, anyReady ? QStringLiteral("Listo") : QStringLiteral("Sin destinos listos")};
+		session = {anyReady ? Tone::Ready : Tone::Idle, anyReady ? i18n("Listo") : i18n("Sin destinos listos")};
 	}
 	const bool timed = state == SessionState::Live || state == SessionState::Partial;
 	session_->setStatus(session.tone, timed ? QStringLiteral("%1 · %2").arg(session.label, clock(coordinator_->liveSince())) : session.label);
@@ -212,7 +213,7 @@ void StatusWindow::render()
 		title_->setFullText(coordinator_->title());
 	} else {
 		title_->setForegroundRole(QPalette::PlaceholderText);
-		title_->setFullText(QStringLiteral("Sin transmisión en curso"));
+		title_->setFullText(i18n("Sin transmisión en curso"));
 	}
 	renderNotice(state);
 	renderPrimary(state);
@@ -232,16 +233,16 @@ void StatusWindow::renderNotice(SessionState state)
 	const auto recovered = coordinator_->recovered();
 	noticeSecondary_->setVisible(false);
 	if (!recovered.isEmpty() && (state == SessionState::Idle || state == SessionState::Attention)) {
-		noticeText_->setText(QStringLiteral("Quedó una emisión sin cerrar: «%1». No se reinicia sola.").arg(recovered.first().title));
-		noticePrimary_->setText(QStringLiteral("Cerrarla ahora"));
-		noticeSecondary_->setText(QStringLiteral("Ya la revisé"));
+		noticeText_->setText(i18n("Quedó una emisión sin cerrar: «%1». No se reinicia sola.").arg(recovered.first().title));
+		noticePrimary_->setText(i18n("Cerrarla ahora"));
+		noticeSecondary_->setText(i18n("Ya la revisé"));
 		noticeSecondary_->setVisible(true);
 		notice_->setVisible(true);
 		return;
 	}
 	const AlertCenter *alerts = controller_->alerts();
 	if (alerts->silent()) {
-		noticeText_->setText(QStringLiteral("No hay audio en la pista %1 desde hace %2 s. Revisá el micrófono y el mezclador de OBS.")
+		noticeText_->setText(i18n("No hay audio en la pista %1 desde hace %2 s. Revisá el micrófono y el mezclador de OBS.")
 					     .arg(alerts->silentTrack())
 					     .arg(alerts->silentSeconds()));
 		noticePrimary_->setVisible(false);
@@ -250,7 +251,7 @@ void StatusWindow::renderNotice(SessionState state)
 	}
 	if ((state == SessionState::Attention || state == SessionState::Partial) && !coordinator_->message().isEmpty()) {
 		noticeText_->setText(coordinator_->message());
-		noticePrimary_->setText(QStringLiteral("Entendido"));
+		noticePrimary_->setText(i18n("Entendido"));
 		noticePrimary_->setVisible(state == SessionState::Attention);
 		notice_->setVisible(true);
 		return;
@@ -264,20 +265,20 @@ void StatusWindow::renderPrimary(SessionState state)
 	switch (state) {
 	case SessionState::Idle:
 	case SessionState::Attention:
-		primary_->present(PrimaryAction::Kind::Go, QStringLiteral("Transmitir…"), QStringLiteral("Elegir destinos y título"),
+		primary_->present(PrimaryAction::Kind::Go, i18n("Transmitir…"), i18n("Elegir destinos y título"),
 				  coordinator_->recovered().isEmpty());
 		break;
 	case SessionState::Checking:
 	case SessionState::Preparing:
-		primary_->present(PrimaryAction::Kind::Busy, QStringLiteral("Cancelar"), QStringLiteral("Creando los directos…"), true);
+		primary_->present(PrimaryAction::Kind::Busy, i18n("Cancelar"), i18n("Creando los directos…"), true);
 		break;
 	case SessionState::Live:
 	case SessionState::Partial:
-		primary_->present(PrimaryAction::Kind::Stop, QStringLiteral("Finalizar transmisión"),
-				  QStringLiteral("%1 al aire").arg(clock(coordinator_->liveSince())), true);
+		primary_->present(PrimaryAction::Kind::Stop, i18n("Finalizar transmisión"),
+				  i18n("%1 al aire").arg(clock(coordinator_->liveSince())), true);
 		break;
 	case SessionState::Stopping:
-		primary_->present(PrimaryAction::Kind::Busy, QStringLiteral("Finalizando…"), QStringLiteral("Cerrando cada directo"), false);
+		primary_->present(PrimaryAction::Kind::Busy, i18n("Finalizando…"), i18n("Cerrando cada directo"), false);
 		break;
 	}
 }

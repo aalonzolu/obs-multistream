@@ -1,5 +1,6 @@
 #include "providers/tiktok-streamlabs.hpp"
 
+#include "core/i18n.hpp"
 #include "net/http-client.hpp"
 #include "net/loopback-receiver.hpp"
 #include "security/pkce.hpp"
@@ -46,15 +47,15 @@ Error accessError(const QJsonObject &info)
 	const QString status = info.value(QStringLiteral("application_status")).toObject().value(QStringLiteral("status")).toString();
 	if (reason == kReasonRelog)
 		return Error::make(ErrorKind::AuthRequired, QStringLiteral("RELOG"),
-				   QStringLiteral("Hay que volver a vincular TikTok en Streamlabs."));
+				   i18n("Hay que volver a vincular TikTok en Streamlabs."));
 	if (status == QStringLiteral("never_applied") && reason != kReasonLegacyKey)
 		return Error::make(ErrorKind::Rejected, QStringLiteral("NEVER_APPLIED"),
-				   QStringLiteral("Esta cuenta no tiene habilitado el acceso mediante Streamlabs."));
+				   i18n("Esta cuenta no tiene habilitado el acceso mediante Streamlabs."));
 	if (reason == kReasonLegacyKey)
 		return Error::make(ErrorKind::Rejected, QStringLiteral("LEGACY_KEY"),
-				   QStringLiteral("Esta cuenta usa claves propias de TikTok LIVE Center, no el acceso de Streamlabs."));
+				   i18n("Esta cuenta usa claves propias de TikTok LIVE Center, no el acceso de Streamlabs."));
 	return Error::make(ErrorKind::Rejected, QStringLiteral("NOT_APPROVED"),
-			   QStringLiteral("TikTok no aprobó o retiró el acceso LIVE de esta cuenta mediante Streamlabs."));
+			   i18n("TikTok no aprobó o retiró el acceso LIVE de esta cuenta mediante Streamlabs."));
 }
 
 } // namespace
@@ -109,7 +110,7 @@ void TikTokStreamlabsProvider::connectAccount(Callback<Account> done)
 		if (query.queryItemValue(QStringLiteral("success")) != QStringLiteral("true") ||
 		    !query.hasQueryItem(QStringLiteral("code"))) {
 			done(Result<Account>::failure(Error::make(ErrorKind::Cancelled, QStringLiteral("LOGIN_CANCELLED"),
-								  QStringLiteral("Streamlabs no confirmó la autorización."))));
+								  i18n("Streamlabs no confirmó la autorización."))));
 			return;
 		}
 		exchange(query.queryItemValue(QStringLiteral("code")), verifier, done);
@@ -117,14 +118,14 @@ void TikTokStreamlabsProvider::connectAccount(Callback<Account> done)
 	connect(receiver, &LoopbackReceiver::expired, this, [receiver, done] {
 		receiver->deleteLater();
 		done(Result<Account>::failure(Error::make(ErrorKind::Cancelled, QStringLiteral("LOGIN_TIMEOUT"),
-							  QStringLiteral("Se venció el tiempo para autorizar en el navegador."))));
+							  i18n("Se venció el tiempo para autorizar en el navegador."))));
 	});
 
 	if (!openInBrowser(url)) {
 		receiver->cancel();
 		receiver->deleteLater();
 		done(Result<Account>::failure(Error::make(ErrorKind::Internal, QStringLiteral("BROWSER"),
-							  QStringLiteral("No se pudo abrir el navegador."))));
+							  i18n("No se pudo abrir el navegador."))));
 	}
 }
 
@@ -150,14 +151,14 @@ void TikTokStreamlabsProvider::exchange(const QString &code, const QString &veri
 		if (!response.success() || !root.value(QStringLiteral("success")).toBool() || oauthToken.isEmpty()) {
 			done(Result<Account>::failure(response.success()
 							      ? Error::make(ErrorKind::Rejected, QStringLiteral("NO_SESSION"),
-									    QStringLiteral("Streamlabs no entregó una sesión."))
+									    i18n("Streamlabs no entregó una sesión."))
 							      : errorFromResponse(response, kProviderName, false)));
 			return;
 		}
 		QString error;
 		if (!secrets::write(kTokenSecret, oauthToken.toUtf8(), &error)) {
 			done(Result<Account>::failure(Error::make(ErrorKind::Internal, QStringLiteral("VAULT"),
-								  QStringLiteral("No se pudo guardar la cuenta: %1").arg(error))));
+								  i18n("No se pudo guardar la cuenta: %1").arg(error))));
 			return;
 		}
 		fetchInfo(oauthToken, [this, done](Result<QJsonObject> info) {
@@ -179,7 +180,7 @@ void TikTokStreamlabsProvider::fetchInfo(const QString &token, Callback<QJsonObj
 		if (!response.success() || !document.isObject()) {
 			done(Result<QJsonObject>::failure(response.success()
 								  ? Error::make(ErrorKind::Rejected, QStringLiteral("INVALID_RESPONSE"),
-										QStringLiteral("TikTok respondió en un formato inesperado."))
+										i18n("TikTok respondió en un formato inesperado."))
 								  : errorFromResponse(response, kProviderName, false)));
 			return;
 		}
@@ -211,7 +212,7 @@ void TikTokStreamlabsProvider::preflight(Callback<Account> done)
 	const QString current = token();
 	if (current.isEmpty()) {
 		done(Result<Account>::failure(Error::make(ErrorKind::AuthRequired, QStringLiteral("DISCONNECTED"),
-							  QStringLiteral("Conectá tu cuenta para usar este destino."))));
+							  i18n("Conectá tu cuenta para usar este destino."))));
 		return;
 	}
 	fetchInfo(current, [this, done](Result<QJsonObject> info) {
@@ -243,7 +244,7 @@ void TikTokStreamlabsProvider::prepare(const StartIntent &intent, Callback<Prepa
 	HttpClient::shared().send(request, this, [this, done](const HttpResponse &response) {
 		if (response.status == 422) {
 			done(Result<PreparedSession>::failure(Error::make(ErrorKind::Rejected, QStringLiteral("BANNED"),
-									  QStringLiteral("TikTok bloqueó temporalmente LIVE en esta cuenta."))));
+									  i18n("TikTok bloqueó temporalmente LIVE en esta cuenta."))));
 			return;
 		}
 		if (!response.success()) {
@@ -260,7 +261,7 @@ void TikTokStreamlabsProvider::prepare(const StartIntent &intent, Callback<Prepa
 		if (session.remoteId.isEmpty() || session.remoteId == QStringLiteral("0") || session.server.isEmpty() ||
 		    session.key.isEmpty()) {
 			done(Result<PreparedSession>::failure(Error::make(ErrorKind::Uncertain, QStringLiteral("INCOMPLETE"),
-									  QStringLiteral("TikTok respondió sin id, servidor o clave."))));
+									  i18n("TikTok respondió sin id, servidor o clave."))));
 			return;
 		}
 		done(Result<PreparedSession>::success(session));
@@ -282,7 +283,7 @@ void TikTokStreamlabsProvider::finalize(const PreparedSession &session, Callback
 		if (!response.success() || !response.json().object().value(QStringLiteral("success")).toBool()) {
 			done(Result<RemoteStatus>::failure(response.success()
 								   ? Error::make(ErrorKind::Rejected, QStringLiteral("END_NOT_CONFIRMED"),
-										 QStringLiteral("TikTok no confirmó el cierre."))
+										 i18n("TikTok no confirmó el cierre."))
 								   : errorFromResponse(response, kProviderName, false)));
 			return;
 		}

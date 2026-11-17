@@ -3,6 +3,8 @@
 
 #include "security/secret-store.hpp"
 
+#include "core/i18n.hpp"
+
 #include <libsecret/secret.h>
 
 #include <memory>
@@ -51,7 +53,7 @@ bool available()
 
 QString backendName()
 {
-	return QStringLiteral("Servicio de secretos de Linux");
+	return i18n("Servicio de secretos de Linux");
 }
 
 bool write(const QString &name, const QByteArray &value, QString *error)
@@ -64,7 +66,7 @@ bool write(const QString &name, const QByteArray &value, QString *error)
 							   name.toUtf8().constData(), nullptr);
 	GErrorPtr failure(raw);
 	if (!stored) {
-		*error = failure ? QString::fromUtf8(failure->message) : QStringLiteral("No se pudo guardar el secreto.");
+		*error = failure ? QString::fromUtf8(failure->message) : i18n("No se pudo guardar el secreto.");
 		return false;
 	}
 	return true;

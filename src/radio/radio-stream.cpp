@@ -1,5 +1,7 @@
 #include "radio/radio-stream.hpp"
 
+#include "core/i18n.hpp"
+
 #include <obs.h>
 
 #include <QByteArray>
@@ -172,7 +174,7 @@ void Stream::run()
 
 	const AVCodec *codec = avcodec_find_encoder_by_name(chosen.encoder.toUtf8().constData());
 	if (!codec) {
-		finish(EndReason::Unsupported, QStringLiteral("Este OBS no incluye el codificador %1.").arg(chosen.label));
+		finish(EndReason::Unsupported, i18n("Este OBS no incluye el codificador %1.").arg(chosen.label));
 		return;
 	}
 	resources.encoder = avcodec_alloc_context3(codec);
@@ -185,12 +187,12 @@ void Stream::run()
 		encoder->bit_rate = static_cast<int64_t>(config_.bitrateKbps) * 1000;
 	const audio_format obsFormat = obsFormatFor(encoder->sample_fmt);
 	if (obsFormat == AUDIO_FORMAT_UNKNOWN) {
-		finish(EndReason::Unsupported, QStringLiteral("El codificador %1 no acepta el audio de OBS.").arg(chosen.label));
+		finish(EndReason::Unsupported, i18n("El codificador %1 no acepta el audio de OBS.").arg(chosen.label));
 		return;
 	}
 
 	if (avformat_alloc_output_context2(&resources.output, nullptr, chosen.muxer.toUtf8().constData(), nullptr) < 0) {
-		finish(EndReason::Unsupported, QStringLiteral("Este OBS no puede empaquetar %1.").arg(chosen.label));
+		finish(EndReason::Unsupported, i18n("Este OBS no puede empaquetar %1.").arg(chosen.label));
 		return;
 	}
 	AVFormatContext *output = resources.output;
@@ -199,7 +201,7 @@ void Stream::run()
 
 	int result = avcodec_open2(encoder, codec, nullptr);
 	if (result < 0) {
-		finish(EndReason::Unsupported, QStringLiteral("No se pudo preparar %1: %2").arg(chosen.label, describe(result)));
+		finish(EndReason::Unsupported, i18n("No se pudo preparar %1: %2").arg(chosen.label, describe(result)));
 		return;
 	}
 	AVStream *stream = avformat_new_stream(output, nullptr);
@@ -241,15 +243,15 @@ void Stream::run()
 	av_dict_free(&options);
 	if (result < 0) {
 		if (result == AVERROR_HTTP_UNAUTHORIZED)
-			finish(EndReason::Rejected, QStringLiteral("El servidor rechazó el usuario o la contraseña."));
+			finish(EndReason::Rejected, i18n("El servidor rechazó el usuario o la contraseña."));
 		else if (result == AVERROR_HTTP_NOT_FOUND)
-			finish(EndReason::Rejected, QStringLiteral("El servidor no tiene el montaje %1.").arg(config_.mount));
+			finish(EndReason::Rejected, i18n("El servidor no tiene el montaje %1.").arg(config_.mount));
 		else if (result == AVERROR_HTTP_FORBIDDEN)
-			finish(EndReason::MountBusy, QStringLiteral("El servidor no aceptó la conexión: puede haber otra fuente conectada (¿BUTT abierto?)."));
+			finish(EndReason::MountBusy, i18n("El servidor no aceptó la conexión: puede haber otra fuente conectada (¿BUTT abierto?)."));
 		else if (result == AVERROR_HTTP_BAD_REQUEST || result == AVERROR_HTTP_OTHER_4XX)
-			finish(EndReason::MethodRejected, QStringLiteral("El servidor no aceptó el método de conexión."));
+			finish(EndReason::MethodRejected, i18n("El servidor no aceptó el método de conexión."));
 		else
-			finish(EndReason::Network, QStringLiteral("No se pudo conectar con %1: %2").arg(config_.endpoint(), describe(result)));
+			finish(EndReason::Network, i18n("No se pudo conectar con %1: %2").arg(config_.endpoint(), describe(result)));
 		return;
 	}
 
@@ -261,7 +263,7 @@ void Stream::run()
 	result = avformat_write_header(output, &muxerOptions);
 	av_dict_free(&muxerOptions);
 	if (result < 0) {
-		finish(EndReason::Network, QStringLiteral("El servidor cortó al iniciar: %1").arg(describe(result)));
+		finish(EndReason::Network, i18n("El servidor cortó al iniciar: %1").arg(describe(result)));
 		return;
 	}
 
@@ -299,7 +301,7 @@ void Stream::run()
 			code = av_interleaved_write_frame(output, packet);
 			if (code < 0) {
 				reason = EndReason::Network;
-				message = QStringLiteral("Se perdió la conexión con el servidor: %1").arg(describe(code));
+				message = i18n("Se perdió la conexión con el servidor: %1").arg(describe(code));
 				return false;
 			}
 		}
@@ -327,7 +329,7 @@ void Stream::run()
 		if (!drain(false)) {
 			if (message.isEmpty()) {
 				reason = EndReason::Unsupported;
-				message = QStringLiteral("El codificador %1 falló.").arg(chosen.label);
+				message = i18n("El codificador %1 falló.").arg(chosen.label);
 			}
 			break;
 		}

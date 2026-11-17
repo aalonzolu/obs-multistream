@@ -1,5 +1,7 @@
 #include "security/secret-store.hpp"
 
+#include "core/i18n.hpp"
+
 #include <windows.h>
 #include <wincred.h>
 
@@ -21,13 +23,13 @@ bool available()
 
 QString backendName()
 {
-	return QStringLiteral("Administrador de credenciales de Windows");
+	return i18n("Administrador de credenciales de Windows");
 }
 
 bool write(const QString &name, const QByteArray &value, QString *error)
 {
 	if (value.size() > CRED_MAX_CREDENTIAL_BLOB_SIZE) {
-		*error = QStringLiteral("La credencial excede el tamaño permitido por Windows.");
+		*error = i18n("La credencial excede el tamaño permitido por Windows.");
 		return false;
 	}
 	std::wstring target = targetName(name);
@@ -38,7 +40,7 @@ bool write(const QString &name, const QByteArray &value, QString *error)
 	credential.CredentialBlob = reinterpret_cast<LPBYTE>(const_cast<char *>(value.constData()));
 	credential.Persist = CRED_PERSIST_LOCAL_MACHINE;
 	if (!CredWriteW(&credential, 0)) {
-		*error = QStringLiteral("CredWrite falló (%1).").arg(GetLastError());
+		*error = i18n("CredWrite falló (%1).").arg(GetLastError());
 		return false;
 	}
 	return true;

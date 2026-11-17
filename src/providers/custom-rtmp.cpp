@@ -1,5 +1,6 @@
 #include "providers/custom-rtmp.hpp"
 
+#include "core/i18n.hpp"
 #include "security/secret-store.hpp"
 #include "storage/settings.hpp"
 
@@ -110,7 +111,7 @@ void CustomRtmpProvider::preflight(Callback<Account> done)
 	const CustomDestination current = destination();
 	if (current.server.isEmpty() || current.key.isEmpty()) {
 		done(Result<Account>::failure(Error::make(ErrorKind::AuthRequired, QStringLiteral("INCOMPLETE"),
-							  QStringLiteral("Completá el servidor y la clave de %1.").arg(displayName()))));
+							  i18n("Completá el servidor y la clave de %1.").arg(displayName()))));
 		return;
 	}
 	done(Result<Account>::success(account()));

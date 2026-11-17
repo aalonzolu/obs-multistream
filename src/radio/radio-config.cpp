@@ -1,5 +1,6 @@
 #include "radio/radio-config.hpp"
 
+#include "core/i18n.hpp"
 #include "security/secret-store.hpp"
 #include "storage/settings.hpp"
 
@@ -67,7 +68,7 @@ const QList<Format> &formats()
 		 QStringLiteral("audio/ogg"), {48, 64, 96, 128, 160, 192, 256}, 128, true},
 		{QStringLiteral("vorbis"), QStringLiteral("Vorbis (Ogg)"), QStringLiteral("ogg"), QStringLiteral("libvorbis"),
 		 QStringLiteral("audio/ogg"), {96, 128, 160, 192, 256, 320}, 192, false},
-		{QStringLiteral("flac"), QStringLiteral("FLAC (Ogg, sin pérdida)"), QStringLiteral("ogg"), QStringLiteral("flac"),
+		{QStringLiteral("flac"), i18n("FLAC (Ogg, sin pérdida)"), QStringLiteral("ogg"), QStringLiteral("flac"),
 		 QStringLiteral("audio/ogg"), {}, 0, false},
 	};
 	return all;
@@ -175,7 +176,7 @@ std::optional<ButtImport> importFromButt(QString *error)
 {
 	QFile file(buttConfigPath());
 	if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-		*error = QStringLiteral("No encontré la configuración de BUTT en este equipo.");
+		*error = i18n("No encontré la configuración de BUTT en este equipo.");
 		return std::nullopt;
 	}
 	const QHash<QString, Section> sections = parseIni(file);
@@ -185,11 +186,11 @@ std::optional<ButtImport> importFromButt(QString *error)
 		serverName = main.value(QStringLiteral("srv_ent")).split(QLatin1Char(';')).value(0);
 	const Section server = sections.value(serverName);
 	if (serverName.isEmpty() || server.value(QStringLiteral("address")).isEmpty()) {
-		*error = QStringLiteral("BUTT no tiene un servidor configurado.");
+		*error = i18n("BUTT no tiene un servidor configurado.");
 		return std::nullopt;
 	}
 	if (server.value(QStringLiteral("type")) == QStringLiteral("0")) {
-		*error = QStringLiteral("El servidor de BUTT es Shoutcast; Multistream solo envía a Icecast.");
+		*error = i18n("El servidor de BUTT es Shoutcast; Multistream solo envía a Icecast.");
 		return std::nullopt;
 	}
 

@@ -1,5 +1,7 @@
 #include "media/encoder-pool.hpp"
 
+#include "core/i18n.hpp"
+
 #include <QStringBuilder>
 
 namespace multistream {
@@ -40,7 +42,7 @@ bool EncoderPool::prepare(const MediaProfile &profile, QString *error)
 {
 	obs_video_info ovi = {};
 	if (!obs_get_video_info(&ovi)) {
-		*error = QStringLiteral("OBS no tiene video inicializado.");
+		*error = i18n("OBS no tiene video inicializado.");
 		return false;
 	}
 
@@ -54,7 +56,7 @@ bool EncoderPool::prepare(const MediaProfile &profile, QString *error)
 		return true;
 
 	if (active()) {
-		*error = QStringLiteral("No se puede cambiar la calidad mientras se está transmitiendo.");
+		*error = i18n("No se puede cambiar la calidad mientras se está transmitiendo.");
 		return false;
 	}
 
@@ -62,7 +64,7 @@ bool EncoderPool::prepare(const MediaProfile &profile, QString *error)
 					  ? preferredH264EncoderId()
 					  : profile.encoderOverride;
 	if (encoderId.isEmpty()) {
-		*error = QStringLiteral("OBS no tiene ningún codificador H.264 disponible.");
+		*error = i18n("OBS no tiene ningún codificador H.264 disponible.");
 		return false;
 	}
 
@@ -71,7 +73,7 @@ bool EncoderPool::prepare(const MediaProfile &profile, QString *error)
 	OBSEncoderAutoRelease audio =
 		obs_audio_encoder_create(kAudioEncoderId, "multistream-audio", audioSettings(profile), kProgramMix, nullptr);
 	if (!video || !audio) {
-		*error = QStringLiteral("No se pudo crear el codificador %1.").arg(video ? kAudioEncoderId : encoderId);
+		*error = i18n("No se pudo crear el codificador %1.").arg(video ? kAudioEncoderId : encoderId);
 		return false;
 	}
 
@@ -104,7 +106,7 @@ void EncoderPool::release()
 QString EncoderPool::describe() const
 {
 	if (!ready())
-		return QStringLiteral("sin codificadores");
+		return i18n("sin codificadores");
 	return videoEncoderId_ % QStringLiteral(" · ") % QString::number(width_) % QStringLiteral("x") %
 	       QString::number(height_) % QStringLiteral("@") % QString::number(fps_);
 }

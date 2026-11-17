@@ -1,5 +1,6 @@
 #include "ui/start-dialog.hpp"
 
+#include "core/i18n.hpp"
 #include "media/media-profile.hpp"
 #include "ui/brand-mark.hpp"
 #include "ui/palette.hpp"
@@ -41,10 +42,10 @@ QString usedLabel(const QString &iso)
 		return {};
 	const QDate today = QDate::currentDate();
 	if (used.date() == today)
-		return QStringLiteral("Hoy %1").arg(used.toString(QStringLiteral("HH:mm")));
+		return i18n("Hoy %1").arg(used.toString(QStringLiteral("HH:mm")));
 	if (used.date() == today.addDays(-1))
-		return QStringLiteral("Ayer");
-	return used.toString(QStringLiteral("dd/MM/yy"));
+		return i18n("Ayer");
+	return used.toString(i18n("dd/MM/yy"));
 }
 
 class TemplateDelegate : public QStyledItemDelegate {
@@ -91,7 +92,7 @@ public:
 			painter->drawText(QRect(area.right() - usedWidth, area.top(), usedWidth, lineHeight), Qt::AlignRight | Qt::AlignVCenter, used);
 		QString description = index.data(kDescriptionRole).toString().simplified();
 		if (description.isEmpty())
-			description = QStringLiteral("Sin descripción");
+			description = i18n("Sin descripción");
 		painter->drawText(QRect(area.left(), area.top() + lineHeight + 2, area.width(), lineHeight), Qt::AlignLeft | Qt::AlignVCenter,
 				  smallMetrics.elidedText(description, Qt::ElideRight, area.width()));
 		painter->restore();
@@ -136,20 +137,20 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Schedu
 	  upload_(mutedLabel(this)),
 	  start_(new PrimaryAction(this))
 {
-	setWindowTitle(QStringLiteral("Transmitir"));
+	setWindowTitle(i18n("Transmitir"));
 	setObjectName(QStringLiteral("multistream-start"));
 	setMinimumSize(880, 560);
 
 	title_->setMaxLength(kTitleLimit);
-	title_->setPlaceholderText(QStringLiteral("Transmisión en vivo · {fecha}"));
-	title_->setAccessibleName(QStringLiteral("Título"));
+	title_->setPlaceholderText(i18n("Transmisión en vivo · {fecha}"));
+	title_->setAccessibleName(i18n("Título"));
 	title_->setClearButtonEnabled(true);
 	auto *insertDate = new QToolButton(this);
-	insertDate->setText(QStringLiteral("+ Fecha"));
-	insertDate->setToolTip(QStringLiteral("Inserta {fecha}: al transmitir se reemplaza por la fecha del día"));
+	insertDate->setText(i18n("+ Fecha"));
+	insertDate->setToolTip(i18n("Inserta {fecha}: al transmitir se reemplaza por la fecha del día"));
 	auto *insertTime = new QToolButton(this);
-	insertTime->setText(QStringLiteral("+ Hora"));
-	insertTime->setToolTip(QStringLiteral("Inserta {hora}: al transmitir se reemplaza por la hora"));
+	insertTime->setText(i18n("+ Hora"));
+	insertTime->setToolTip(i18n("Inserta {hora}: al transmitir se reemplaza por la hora"));
 	auto *titleRow = new QHBoxLayout();
 	titleRow->setSpacing(4);
 	titleRow->addWidget(title_, 1);
@@ -157,28 +158,28 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Schedu
 	titleRow->addWidget(insertTime);
 	titlePreview_->setTextFormat(Qt::PlainText);
 
-	description_->setPlaceholderText(QStringLiteral("Opcional. Se publica en YouTube y Facebook."));
+	description_->setPlaceholderText(i18n("Opcional. Se publica en YouTube y Facebook."));
 	description_->setTabChangesFocus(true);
-	description_->setAccessibleName(QStringLiteral("Descripción"));
+	description_->setAccessibleName(i18n("Descripción"));
 	description_->setFixedHeight(description_->fontMetrics().lineSpacing() * 4 + 14);
 
 	auto *what = new QGridLayout();
 	what->setHorizontalSpacing(8);
 	what->setVerticalSpacing(4);
-	what->addWidget(sectionLabel(QStringLiteral("Título"), title_, this), 0, 0);
+	what->addWidget(sectionLabel(i18n("Título"), title_, this), 0, 0);
 	what->addWidget(titleCount_, 0, 1, Qt::AlignRight | Qt::AlignBottom);
 	what->addLayout(titleRow, 1, 0, 1, 2);
 	what->addWidget(titlePreview_, 2, 0, 1, 2);
 	what->setRowMinimumHeight(3, 8);
-	what->addWidget(sectionLabel(QStringLiteral("Descripción"), description_, this), 4, 0);
+	what->addWidget(sectionLabel(i18n("Descripción"), description_, this), 4, 0);
 	what->addWidget(descriptionCount_, 4, 1, Qt::AlignRight | Qt::AlignBottom);
 	what->addWidget(description_, 5, 0, 1, 2);
 	what->setColumnStretch(0, 1);
 
 	useScheduled_ = new QCheckBox(this);
 	useScheduled_->setVisible(false);
-	record_ = new QCheckBox(QStringLiteral("Grabar también en este equipo"), this);
-	record_->setToolTip(QStringLiteral("Inicia la grabación de OBS junto con la transmisión y la detiene al terminar. Usa la carpeta y el formato de grabación de OBS."));
+	record_ = new QCheckBox(i18n("Grabar también en este equipo"), this);
+	record_->setToolTip(i18n("Inicia la grabación de OBS junto con la transmisión y la detiene al terminar. Usa la carpeta y el formato de grabación de OBS."));
 	record_->setChecked(Settings::shared().provider(QStringLiteral("ui")).value(QStringLiteral("record_along")).toBool());
 
 	auto *right = new QVBoxLayout();
@@ -197,18 +198,18 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Schedu
 	for (const MediaProfile &profile : mediaProfiles())
 		profile_->addItem(profile.label, profile.id);
 	profile_->setCurrentIndex(std::max(0, profile_->findData(Settings::shared().profileId())));
-	profile_->setAccessibleName(QStringLiteral("Calidad"));
-	auto *cancel = new QPushButton(QStringLiteral("Cancelar"), this);
+	profile_->setAccessibleName(i18n("Calidad"));
+	auto *cancel = new QPushButton(i18n("Cancelar"), this);
 	cancel->setAutoDefault(false);
-	auto *scheduleButton = new QPushButton(QStringLiteral("Programar…"), this);
+	auto *scheduleButton = new QPushButton(i18n("Programar…"), this);
 	scheduleButton->setAutoDefault(false);
-	scheduleButton->setToolTip(QStringLiteral("Crear el directo con fecha y hora para compartir el enlace antes"));
+	scheduleButton->setToolTip(i18n("Crear el directo con fecha y hora para compartir el enlace antes"));
 	scheduleButton->setVisible(static_cast<bool>(actions_.schedule));
 	start_->setFixedSize(230, 50);
 
 	auto *footer = new QHBoxLayout();
 	footer->setSpacing(8);
-	footer->addWidget(sectionLabel(QStringLiteral("Calidad"), profile_, this));
+	footer->addWidget(sectionLabel(i18n("Calidad"), profile_, this));
 	footer->addWidget(profile_);
 	footer->addWidget(upload_);
 	footer->addStretch();
@@ -230,8 +231,8 @@ StartDialog::StartDialog(Coordinator *coordinator, radio::Station *radio, Schedu
 	connect(title_, &QLineEdit::textChanged, this, &StartDialog::refresh);
 	connect(title_, &QLineEdit::returnPressed, this, &StartDialog::startStreaming);
 	connect(description_, &QPlainTextEdit::textChanged, this, &StartDialog::refresh);
-	connect(insertDate, &QToolButton::clicked, this, [this] { insertToken(QStringLiteral("{fecha}")); });
-	connect(insertTime, &QToolButton::clicked, this, [this] { insertToken(QStringLiteral("{hora}")); });
+	connect(insertDate, &QToolButton::clicked, this, [this] { insertToken(i18n("{fecha}")); });
+	connect(insertTime, &QToolButton::clicked, this, [this] { insertToken(i18n("{hora}")); });
 	connect(profile_, &QComboBox::currentIndexChanged, this, [this] {
 		Settings::shared().setProfileId(profile_->currentData().toString());
 		refresh();
@@ -270,12 +271,12 @@ void StartDialog::refreshScheduled()
 	QStringList names;
 	for (auto it = scheduled_->broadcasts.begin(); it != scheduled_->broadcasts.end(); ++it)
 		names << coordinator_->target(it.key()).name;
-	const QLocale spanish(QLocale::Spanish);
+	const QLocale locale = interfaceLocale();
 	const QDateTime local = scheduled_->startsAt.toLocalTime();
-	const QString day = local.date() == QDate::currentDate() ? QStringLiteral("hoy") : spanish.toString(local.date(), QStringLiteral("dddd d"));
-	useScheduled_->setText(QStringLiteral("Usar la transmisión programada «%1» (%2 %3 · %4)")
-				       .arg(scheduled_->title, day, local.toString(QStringLiteral("HH:mm")), spanish.createSeparatedList(names)));
-	useScheduled_->setToolTip(QStringLiteral("Transmite en los directos ya creados, con los enlaces que compartiste."));
+	const QString day = local.date() == QDate::currentDate() ? i18n("hoy") : locale.toString(local.date(), QStringLiteral("dddd d"));
+	useScheduled_->setText(i18n("Usar la transmisión programada «%1» (%2 %3 · %4)")
+				       .arg(scheduled_->title, day, local.toString(QStringLiteral("HH:mm")), locale.createSeparatedList(names)));
+	useScheduled_->setToolTip(i18n("Transmite en los directos ya creados, con los enlaces que compartiste."));
 	if (!useScheduled_->isChecked())
 		useScheduled_->setChecked(true);
 	else
@@ -333,16 +334,16 @@ QWidget *StartDialog::buildRecents()
 	list_ = new QListWidget(panel);
 	list_->setItemDelegate(new TemplateDelegate(list_));
 	list_->setUniformItemSizes(true);
-	list_->setAccessibleName(QStringLiteral("Transmisiones recientes"));
+	list_->setAccessibleName(i18n("Transmisiones recientes"));
 
 	auto *newButton = new QToolButton(panel);
-	newButton->setText(QStringLiteral("Nueva"));
-	newButton->setToolTip(QStringLiteral("Empezar con título y descripción vacíos"));
+	newButton->setText(i18n("Nueva"));
+	newButton->setToolTip(i18n("Empezar con título y descripción vacíos"));
 	save_ = new QToolButton(panel);
 	remove_ = new QToolButton(panel);
 	remove_->setProperty("class", "icon-trash");
-	remove_->setToolTip(QStringLiteral("Eliminar de recientes"));
-	remove_->setAccessibleName(QStringLiteral("Eliminar de recientes"));
+	remove_->setToolTip(i18n("Eliminar de recientes"));
+	remove_->setAccessibleName(i18n("Eliminar de recientes"));
 
 	auto *actions = new QHBoxLayout();
 	actions->setSpacing(4);
@@ -354,7 +355,7 @@ QWidget *StartDialog::buildRecents()
 	auto *layout = new QVBoxLayout(panel);
 	layout->setContentsMargins(0, 0, 0, 0);
 	layout->setSpacing(6);
-	layout->addWidget(sectionLabel(QStringLiteral("Recientes"), list_, panel));
+	layout->addWidget(sectionLabel(i18n("Recientes"), list_, panel));
 	layout->addWidget(list_, 1);
 	layout->addLayout(actions);
 
@@ -374,18 +375,18 @@ QWidget *StartDialog::optionsFor(const QString &providerId, DestinationLine &lin
 	if (providerId == QStringLiteral("youtube")) {
 		const QJsonObject stored = Settings::shared().provider(providerId);
 		youtubePrivacy_ = new QComboBox(box);
-		youtubePrivacy_->addItem(QStringLiteral("Pública"), QStringLiteral("public"));
-		youtubePrivacy_->addItem(QStringLiteral("No listada"), QStringLiteral("unlisted"));
-		youtubePrivacy_->addItem(QStringLiteral("Privada"), QStringLiteral("private"));
+		youtubePrivacy_->addItem(i18n("Pública"), QStringLiteral("public"));
+		youtubePrivacy_->addItem(i18n("No listada"), QStringLiteral("unlisted"));
+		youtubePrivacy_->addItem(i18n("Privada"), QStringLiteral("private"));
 		youtubePrivacy_->setCurrentIndex(std::max(0, youtubePrivacy_->findData(stored.value(QStringLiteral("privacy")).toString(QStringLiteral("public")))));
-		youtubePrivacy_->setAccessibleName(QStringLiteral("Visibilidad en YouTube"));
+		youtubePrivacy_->setAccessibleName(i18n("Visibilidad en YouTube"));
 		youtubeKids_ = new QComboBox(box);
-		youtubeKids_->addItem(QStringLiteral("¿Para niños?"), QString());
-		youtubeKids_->addItem(QStringLiteral("No es para niños"), QStringLiteral("no"));
-		youtubeKids_->addItem(QStringLiteral("Es para niños"), QStringLiteral("yes"));
+		youtubeKids_->addItem(i18n("¿Para niños?"), QString());
+		youtubeKids_->addItem(i18n("No es para niños"), QStringLiteral("no"));
+		youtubeKids_->addItem(i18n("Es para niños"), QStringLiteral("yes"));
 		youtubeKids_->setCurrentIndex(std::max(0, youtubeKids_->findData(stored.value(QStringLiteral("made_for_kids")).toString())));
-		youtubeKids_->setAccessibleName(QStringLiteral("Contenido para niños en YouTube"));
-		youtubeKids_->setToolTip(QStringLiteral("YouTube exige declararlo. No lo elegimos por vos."));
+		youtubeKids_->setAccessibleName(i18n("Contenido para niños en YouTube"));
+		youtubeKids_->setToolTip(i18n("YouTube exige declararlo. No lo elegimos por vos."));
 		layout->addWidget(youtubePrivacy_);
 		layout->addWidget(youtubeKids_);
 		const auto persist = [this] {
@@ -396,8 +397,8 @@ QWidget *StartDialog::optionsFor(const QString &providerId, DestinationLine &lin
 		connect(youtubePrivacy_, &QComboBox::currentIndexChanged, this, persist);
 		connect(youtubeKids_, &QComboBox::currentIndexChanged, this, persist);
 	} else if (providerId == QStringLiteral("facebook")) {
-		facebookHide_ = new QCheckBox(QStringLiteral("Privado al terminar"), box);
-		facebookHide_->setToolTip(QStringLiteral("Al finalizar, el video queda en la página pero solo lo ven los administradores."));
+		facebookHide_ = new QCheckBox(i18n("Privado al terminar"), box);
+		facebookHide_->setToolTip(i18n("Al finalizar, el video queda en la página pero solo lo ven los administradores."));
 		facebookHide_->setChecked(Settings::shared().provider(providerId).value(QStringLiteral("hide_after_end")).toBool(true));
 		layout->addWidget(facebookHide_);
 		connect(facebookHide_, &QCheckBox::toggled, this, [](bool on) {
@@ -423,12 +424,12 @@ QWidget *StartDialog::buildDestinations()
 	grid->setContentsMargins(0, 0, 0, 0);
 	grid->setHorizontalSpacing(10);
 	grid->setVerticalSpacing(8);
-	grid->addWidget(sectionLabel(QStringLiteral("Destinos"), nullptr, panel), 0, 0, 1, 5);
+	grid->addWidget(sectionLabel(i18n("Destinos"), nullptr, panel), 0, 0, 1, 5);
 	int row = 1;
 	for (const TargetView &view : coordinator_->targets()) {
 		DestinationLine &line = destinations_[view.id];
 		line.check = new QCheckBox(panel);
-		line.check->setAccessibleName(QStringLiteral("Transmitir en %1").arg(view.name));
+		line.check->setAccessibleName(i18n("Transmitir en %1").arg(view.name));
 		auto *name = new QLabel(view.name, panel);
 		QFont font = name->font();
 		font.setWeight(QFont::DemiBold);
@@ -460,7 +461,7 @@ QWidget *StartDialog::buildDestinations()
 void StartDialog::addRadioLine(QGridLayout *grid, int row, QWidget *panel)
 {
 	radioCheck_ = new QCheckBox(panel);
-	radioCheck_->setAccessibleName(QStringLiteral("Transmitir en la radio"));
+	radioCheck_->setAccessibleName(i18n("Transmitir en la radio"));
 	auto *name = new QLabel(QStringLiteral("Radio"), panel);
 	QFont font = name->font();
 	font.setWeight(QFont::DemiBold);
@@ -476,7 +477,7 @@ void StartDialog::addRadioLine(QGridLayout *grid, int row, QWidget *panel)
 	layout->setSpacing(6);
 	radioNote_ = mutedLabel(options);
 	radioNote_->setTextFormat(Qt::PlainText);
-	radioConfigure_ = new QPushButton(QStringLiteral("Configurar…"), options);
+	radioConfigure_ = new QPushButton(i18n("Configurar…"), options);
 	radioConfigure_->setAutoDefault(false);
 	layout->addWidget(radioNote_, 1);
 	layout->addWidget(radioConfigure_);
@@ -509,8 +510,8 @@ void StartDialog::refreshRadio()
 		radioCheck_->setChecked(active || (configured && Settings::shared().selected(QStringLiteral("radio"))));
 	}
 	radioCheck_->setEnabled(configured && !active);
-	radioIdentity_->setFullText(configured ? config.endpoint() : QStringLiteral("Sin servidor configurado"));
-	radioNote_->setText(active ? QStringLiteral("Ya está al aire") : configured ? config.summary() : QString());
+	radioIdentity_->setFullText(configured ? config.endpoint() : i18n("Sin servidor configurado"));
+	radioNote_->setText(active ? i18n("Ya está al aire") : configured ? config.summary() : QString());
 	radioConfigure_->setVisible(!active);
 	refresh();
 }
@@ -538,7 +539,7 @@ void StartDialog::refreshDestinations()
 			line.check->setChecked(ready && view.selected);
 		}
 		line.check->setEnabled(ready);
-		QString identity = view.account.connected() ? view.account.destinationName : QStringLiteral("Sin cuenta conectada");
+		QString identity = view.account.connected() ? view.account.destinationName : i18n("Sin cuenta conectada");
 		if (identity.isEmpty())
 			identity = view.account.displayName;
 		line.identity->setFullText(identity);
@@ -563,10 +564,10 @@ void StartDialog::refreshDestinations()
 		else
 			line.fixKind = Fix::None;
 		static const QMap<Fix, QString> labels = {
-			{Fix::Connect, QStringLiteral("Conectar")},
-			{Fix::Reconnect, QStringLiteral("Reconectar")},
-			{Fix::ChooseDestination, QStringLiteral("Elegir página")},
-			{Fix::Cancel, QStringLiteral("Cancelar")},
+			{Fix::Connect, i18n("Conectar")},
+			{Fix::Reconnect, i18n("Reconectar")},
+			{Fix::ChooseDestination, i18n("Elegir página")},
+			{Fix::Cancel, i18n("Cancelar")},
 		};
 		line.fix->setText(labels.value(line.fixKind));
 		line.fix->setAccessibleName(QStringLiteral("%1 %2").arg(labels.value(line.fixKind), view.name));
@@ -618,8 +619,8 @@ void StartDialog::loadTemplates(const QString &selectId)
 	if (templates_.isEmpty()) {
 		auto *empty = new QListWidgetItem(list_);
 		empty->setFlags(Qt::NoItemFlags);
-		empty->setData(kTitleRole, QStringLiteral("Todavía no hay recientes"));
-		empty->setData(kDescriptionRole, QStringLiteral("Cada transmisión queda aquí para reusarla."));
+		empty->setData(kTitleRole, i18n("Todavía no hay recientes"));
+		empty->setData(kDescriptionRole, i18n("Cada transmisión queda aquí para reusarla."));
 	}
 	if (selectRow >= 0)
 		list_->setCurrentRow(selectRow);
@@ -704,15 +705,15 @@ QString StartDialog::renderedDescription() const
 QString StartDialog::blockingReason(int videoCount, bool radioStarting) const
 {
 	if (videoCount > 0 && !coordinator_->recovered().isEmpty())
-		return QStringLiteral("Cerrá antes la emisión anterior");
+		return i18n("Cerrá antes la emisión anterior");
 	if (renderedTitle().isEmpty())
-		return QStringLiteral("Falta el título");
+		return i18n("Falta el título");
 	if (videoCount == 0 && !radioStarting)
-		return radio_ && radio_->active() ? QStringLiteral("La radio ya está al aire") : QStringLiteral("Elegí al menos un destino");
+		return radio_ && radio_->active() ? i18n("La radio ya está al aire") : i18n("Elegí al menos un destino");
 	const auto youtube = destinations_.find(QStringLiteral("youtube"));
 	if (youtube != destinations_.end() && youtube->second.check->isChecked() && youtubeKids_ &&
 	    youtubeKids_->currentData().toString().isEmpty())
-		return QStringLiteral("YouTube: indicá si es para niños");
+		return i18n("YouTube: indicá si es para niños");
 	return {};
 }
 
@@ -723,8 +724,8 @@ void StartDialog::refresh()
 	titleCount_->setText(QStringLiteral("%1/%2").arg(rendered.size()).arg(kTitleLimit));
 	const int descriptionLength = static_cast<int>(renderedDescription().size());
 	descriptionCount_->setText(descriptionLength > 0 ? QStringLiteral("%1/%2").arg(descriptionLength).arg(kDescriptionLimit) : QString());
-	const bool hasTokens = raw.contains(QStringLiteral("{fecha}")) || raw.contains(QStringLiteral("{hora}"));
-	titlePreview_->setText(hasTokens && !rendered.isEmpty() ? QStringLiteral("Se publicará como «%1»").arg(rendered) : QString());
+	const bool hasTokens = rendered != raw.trimmed();
+	titlePreview_->setText(hasTokens && !rendered.isEmpty() ? i18n("Se publicará como «%1»").arg(rendered) : QString());
 	titlePreview_->setVisible(!titlePreview_->text().isEmpty());
 
 	int selected = 0;
@@ -737,13 +738,13 @@ void StartDialog::refresh()
 		const TargetView view = coordinator_->target(id);
 		QString note;
 		if (line.fixKind == Fix::Cancel)
-			note = QStringLiteral("Autorizando en el navegador…");
+			note = i18n("Autorizando en el navegador…");
 		else if (view.state != TargetState::Ready && line.fixKind == Fix::None)
-			note = view.message.isEmpty() ? QStringLiteral("No está listo") : view.message;
+			note = view.message.isEmpty() ? i18n("No está listo") : view.message;
 		else if (line.check->isChecked() && !scheduledId().isEmpty() && scheduled_->broadcasts.contains(id))
-			note = QStringLiteral("Programado");
+			note = i18n("Programado");
 		else if (id == QStringLiteral("tiktok") && line.check->isChecked() && rendered.size() > kTikTokLimit)
-			note = QStringLiteral("Mostrará «%1…»").arg(rendered.left(kTikTokLimit));
+			note = i18n("Mostrará «%1…»").arg(rendered.left(kTikTokLimit));
 		line.note->setText(note);
 		line.note->setToolTip(note);
 	}
@@ -752,7 +753,7 @@ void StartDialog::refresh()
 	const auto current = std::find_if(templates_.begin(), templates_.end(), [&](const StreamTemplate &t) { return t.id == selectedId; });
 	const bool modified = current != templates_.end() &&
 			      (current->title != raw.trimmed() || current->description != description_->toPlainText().trimmed());
-	save_->setText(selectedId.isEmpty() ? QStringLiteral("Guardar") : QStringLiteral("Guardar cambios"));
+	save_->setText(selectedId.isEmpty() ? i18n("Guardar") : i18n("Guardar cambios"));
 	save_->setEnabled(!raw.trimmed().isEmpty() && (selectedId.isEmpty() || modified));
 	remove_->setEnabled(!selectedId.isEmpty());
 
@@ -761,21 +762,21 @@ void StartDialog::refresh()
 	const int radioKbps = !radioStarting ? 0 : radioFormat.bitrates.isEmpty() ? 900 : radio_->config().bitrateKbps;
 	const MediaProfile profile = mediaProfile(profile_->currentData().toString());
 	const int videoKbps = selected * (profile.videoBitrateKbps + profile.audioBitrateKbps);
-	upload_->setText(QStringLiteral("≈ %1 Mbps de subida").arg((videoKbps + radioKbps) / 1000.0, 0, 'f', 1));
-	upload_->setToolTip(QStringLiteral("%1 destino(s) de video × %2 kbps, más %3 kbps de radio, sin contar overhead.")
+	upload_->setText(i18n("≈ %1 Mbps de subida").arg((videoKbps + radioKbps) / 1000.0, 0, 'f', 1));
+	upload_->setToolTip(i18n("%1 destino(s) de video × %2 kbps, más %3 kbps de radio, sin contar overhead.")
 				    .arg(selected)
 				    .arg(profile.videoBitrateKbps + profile.audioBitrateKbps)
 				    .arg(radioKbps));
 	profile_->setEnabled(selected > 0);
 
 	if (radioStarting)
-		names << QStringLiteral("la radio");
+		names << i18n("la radio");
 	const int total = selected + (radioStarting ? 1 : 0);
 	const QString reason = blockingReason(selected, radioStarting);
 	QString caption = reason;
 	if (reason.isEmpty())
-		caption = total == 1 ? QStringLiteral("en %1").arg(names.first()) : QStringLiteral("en %1 destinos").arg(total);
-	start_->present(PrimaryAction::Kind::Go, QStringLiteral("Transmitir"), caption, reason.isEmpty());
+		caption = total == 1 ? i18n("en %1").arg(names.first()) : i18n("en %1 destinos").arg(total);
+	start_->present(PrimaryAction::Kind::Go, i18n("Transmitir"), caption, reason.isEmpty());
 }
 
 void StartDialog::startStreaming()

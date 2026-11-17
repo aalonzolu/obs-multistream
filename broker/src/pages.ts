@@ -21,8 +21,8 @@ function contactLine(operator: Operator): string {
   return operator.contact ? `<p>Contacto: ${escape(operator.contact)}</p>` : "";
 }
 
-export function resultPage(message: string): string {
-  return layout("Multistream", `<p>${escape(message)}</p>`);
+export function resultPage(english: string, spanish: string): string {
+  return layout("Multistream", `<p lang="en">${escape(english)}</p>\n<p lang="es">${escape(spanish)}</p>`);
 }
 
 export function homePage(operator: Operator): string {

@@ -1,5 +1,6 @@
 #include "orchestration/coordinator.hpp"
 
+#include "core/i18n.hpp"
 #include "storage/settings.hpp"
 
 #include <obs-frontend-api.h>
@@ -204,7 +205,7 @@ void Coordinator::updateSleepInhibitor()
 {
 	const bool active = state_ == SessionState::Live || state_ == SessionState::Partial;
 	if (active && !sleepInhibitor_)
-		sleepInhibitor_ = os_inhibit_sleep_create("Multistream está transmitiendo");
+		sleepInhibitor_ = os_inhibit_sleep_create(i18n("Multistream está transmitiendo").toUtf8().constData());
 	if (sleepInhibitor_)
 		os_inhibit_sleep_set_active(sleepInhibitor_, active);
 }
@@ -230,12 +231,12 @@ void Coordinator::start(const QString &title, const QString &description, const 
 		return;
 	if (obs_frontend_streaming_active()) {
 		setState(SessionState::Attention,
-			 QStringLiteral("La transmisión nativa de OBS está activa. Detenela antes de usar Multistream."));
+			 i18n("La transmisión nativa de OBS está activa. Detenela antes de usar Multistream."));
 		return;
 	}
 	if (!recovered_.isEmpty()) {
 		setState(SessionState::Attention,
-			 QStringLiteral("Hay una emisión anterior sin cerrar. Resolvela antes de iniciar otra."));
+			 i18n("Hay una emisión anterior sin cerrar. Resolvela antes de iniciar otra."));
 		return;
 	}
 
@@ -252,7 +253,7 @@ void Coordinator::start(const QString &title, const QString &description, const 
 			selected.push_back(id);
 	}
 	if (selected.empty()) {
-		setState(SessionState::Attention, QStringLiteral("Elegí al menos un destino."));
+		setState(SessionState::Attention, i18n("Elegí al menos un destino."));
 		return;
 	}
 
@@ -268,7 +269,7 @@ void Coordinator::start(const QString &title, const QString &description, const 
 		target.message.clear();
 		target.state = TargetState::Checking;
 	}
-	setState(SessionState::Checking, QStringLiteral("Comprobando destinos…"));
+	setState(SessionState::Checking, i18n("Comprobando destinos…"));
 
 	phaseTimer_.disconnect();
 	connect(&phaseTimer_, &QTimer::timeout, this, [this, generation] {
@@ -276,7 +277,7 @@ void Coordinator::start(const QString &title, const QString &description, const 
 			Target &target = at(id);
 			if (target.state == TargetState::Checking) {
 				target.state = TargetState::Failed;
-				target.message = QStringLiteral("%1 no respondió a tiempo.").arg(target.provider->displayName());
+				target.message = i18n("%1 no respondió a tiempo.").arg(target.provider->displayName());
 			}
 		}
 		afterPreflight(generation);
@@ -317,7 +318,7 @@ void Coordinator::afterPreflight(int generation)
 		for (const QString &id : sessionTargets())
 			at(id).inSession = false;
 		setState(SessionState::Attention,
-			 QStringLiteral("%1 necesita atención. No se publicó nada; podés resolverlo o quitarlo de la selección.")
+			 i18n("%1 necesita atención. No se publicó nada; podés resolverlo o quitarlo de la selección.")
 				 .arg(blocked.join(QStringLiteral(", "))));
 		return;
 	}
@@ -339,7 +340,7 @@ void Coordinator::afterPreflight(int generation)
 
 	for (const QString &id : sessionTargets())
 		at(id).state = TargetState::Preparing;
-	setState(SessionState::Preparing, QStringLiteral("Preparando las emisiones…"));
+	setState(SessionState::Preparing, i18n("Preparando las emisiones…"));
 
 	phaseTimer_.disconnect();
 	connect(&phaseTimer_, &QTimer::timeout, this, [this, generation] {
@@ -347,7 +348,7 @@ void Coordinator::afterPreflight(int generation)
 			Target &target = at(id);
 			if (target.state == TargetState::Preparing) {
 				target.state = TargetState::PrepareUnknown;
-				target.message = QStringLiteral("La plataforma no confirmó si creó el LIVE. Revisemos antes de intentar otra vez.");
+				target.message = i18n("La plataforma no confirmó si creó el LIVE. Revisemos antes de intentar otra vez.");
 				persist(id);
 			}
 		}
@@ -372,7 +373,7 @@ void Coordinator::afterPreflight(int generation)
 			} else {
 				target.state = stateForError(result.error);
 				target.message = result.error.kind == ErrorKind::Uncertain
-							 ? QStringLiteral("%1 La plataforma no confirmó si creó el LIVE; revisalo antes de intentar otra vez.")
+							 ? i18n("%1 La plataforma no confirmó si creó el LIVE; revisalo antes de intentar otra vez.")
 								   .arg(result.error.message)
 							 : result.error.message;
 			}
@@ -387,7 +388,7 @@ void Coordinator::afterPreflight(int generation)
 void Coordinator::abandon(const QString &id, const PreparedSession &session)
 {
 	Journal::shared().updateTarget(sessionUuid_, {id, QStringLiteral("ABANDONED"), session.remoteId, session.remoteStreamId,
-						      session.publicUrl, QStringLiteral("respuesta tardía; se solicitó el cierre")});
+						      session.publicUrl, i18n("respuesta tardía; se solicitó el cierre")});
 	at(id).provider->finalize(session, [](Result<RemoteStatus>) {});
 }
 
@@ -411,7 +412,7 @@ void Coordinator::afterPrepare(int generation)
 		return targets_.at(id).inSession && targets_.at(id).session.has_value();
 	});
 	setState(SessionState::Stopping,
-		 QStringLiteral("No se pudo preparar %1. Cerrando las emisiones que sí se crearon…").arg(failed.join(QStringLiteral(", "))));
+		 i18n("No se pudo preparar %1. Cerrando las emisiones que sí se crearon…").arg(failed.join(QStringLiteral(", "))));
 	if (created) {
 		outputsStopped_ = true;
 		finalizeTargets(generation_);
@@ -424,7 +425,7 @@ void Coordinator::startOutputs()
 {
 	engine_->setReconnectPolicy({Settings::shared().reconnectRetries(), Settings::shared().reconnectDelaySeconds()});
 	liveSince_ = QDateTime::currentDateTime();
-	setState(SessionState::Live, QStringLiteral("Conectando con las plataformas…"));
+	setState(SessionState::Live, i18n("Conectando con las plataformas…"));
 	Journal::shared().setSessionState(sessionUuid_, QStringLiteral("LIVE"));
 	for (const QString &id : sessionTargets()) {
 		Target &target = at(id);
@@ -457,14 +458,14 @@ void Coordinator::onTransport(const QString &id, Transport transport)
 		break;
 	case Transport::Reconnecting:
 		target.state = TargetState::Reconnecting;
-		target.message = QStringLiteral("Se perdió la conexión. Estamos intentando recuperarla.");
+		target.message = i18n("Se perdió la conexión. Estamos intentando recuperarla.");
 		break;
 	case Transport::Failed:
 	case Transport::Stopped:
 		if (target.state == TargetState::Failed)
 			break;
 		target.state = TargetState::Failed;
-		target.message = QStringLiteral("%1 perdió la conexión y no pudo recuperarla. %2").arg(target.provider->displayName(), engine_->lastError(id));
+		target.message = i18n("%1 perdió la conexión y no pudo recuperarla. %2").arg(target.provider->displayName(), engine_->lastError(id));
 		checkRemoteAfterFailure(id);
 		break;
 	case Transport::Connecting:
@@ -493,15 +494,15 @@ void Coordinator::recomputeLiveState()
 	}
 	if (troubled.isEmpty()) {
 		const bool connecting = anyInSessionState(TargetState::Connecting);
-		setState(SessionState::Live, connecting ? QStringLiteral("Conectando con las plataformas…") : QStringLiteral("Transmitiendo."));
+		setState(SessionState::Live, connecting ? i18n("Conectando con las plataformas…") : i18n("Transmitiendo."));
 		return;
 	}
 	const QString message =
 		healthy.isEmpty()
-			? QStringLiteral("%1 necesita atención. No hay destinos transmitiendo.").arg(troubled.join(QStringLiteral(", ")))
-			: QStringLiteral("%1 necesita atención. %2 sigue%3 transmitiendo.")
-				  .arg(troubled.join(QStringLiteral(", ")), healthy.join(QStringLiteral(" y ")),
-				       healthy.size() > 1 ? QStringLiteral("n") : QString());
+			? i18n("%1 necesita atención. No hay destinos transmitiendo.").arg(interfaceLocale().createSeparatedList(troubled))
+			: (healthy.size() > 1 ? i18n("%1 necesita atención. %2 siguen transmitiendo.")
+					      : i18n("%1 necesita atención. %2 sigue transmitiendo."))
+				  .arg(interfaceLocale().createSeparatedList(troubled), interfaceLocale().createSeparatedList(healthy));
 	setState(SessionState::Partial, message);
 }
 
@@ -529,7 +530,7 @@ void Coordinator::inspectAll()
 			} else if (result.value->verification == Verification::Ended) {
 				current.state = TargetState::Failed;
 				current.remoteEnded = true;
-				current.message = QStringLiteral("%1 terminó el directo de su lado. Podés crear uno nuevo solo en este destino.").arg(current.provider->displayName());
+				current.message = i18n("%1 terminó el directo de su lado. Podés crear uno nuevo solo en este destino.").arg(current.provider->displayName());
 				engine_->stopTarget(id);
 			}
 			persist(id);
@@ -584,7 +585,7 @@ void Coordinator::checkRemoteAfterFailure(const QString &id)
 		if (current.state != TargetState::Failed || result.value->verification != Verification::Ended)
 			return;
 		current.remoteEnded = true;
-		current.message = QStringLiteral("%1 cerró el directo después del corte. Podés crear uno nuevo solo en este destino.")
+		current.message = i18n("%1 cerró el directo después del corte. Podés crear uno nuevo solo en este destino.")
 					  .arg(current.provider->displayName());
 		persist(id);
 		emit changed();
@@ -606,7 +607,7 @@ void Coordinator::restartTarget(const QString &id)
 	target.remoteEnded = false;
 	target.retries = 0;
 	target.state = TargetState::Preparing;
-	target.message = QStringLiteral("Creando un directo nuevo en %1…").arg(target.provider->displayName());
+	target.message = i18n("Creando un directo nuevo en %1…").arg(target.provider->displayName());
 	recomputeLiveState();
 
 	const int generation = generation_;
@@ -657,7 +658,7 @@ void Coordinator::stop()
 		if (target.session)
 			target.state = TargetState::Stopping;
 	}
-	setState(SessionState::Stopping, QStringLiteral("Finalizando…"));
+	setState(SessionState::Stopping, i18n("Finalizando…"));
 
 	if (preparing) {
 		++generation_;
@@ -707,7 +708,7 @@ void Coordinator::finalizeOne(const QString &id, int generation)
 			current.message.clear();
 		} else {
 			current.state = TargetState::ClosePending;
-			current.message = QStringLiteral("La señal se detuvo, pero falta confirmar el cierre en %1. %2")
+			current.message = i18n("La señal se detuvo, pero falta confirmar el cierre en %1. %2")
 						  .arg(current.provider->displayName(), result.error.message);
 			scheduleCloseRetry(id);
 		}
@@ -755,18 +756,18 @@ void Coordinator::finishStopping()
 	if (!pending.isEmpty() || !unknown.isEmpty() || !failed.isEmpty()) {
 		QStringList parts;
 		if (!failed.isEmpty())
-			parts << QStringLiteral("No se pudo preparar %1.").arg(failed.join(QStringLiteral(", ")));
+			parts << i18n("No se pudo preparar %1.").arg(failed.join(QStringLiteral(", ")));
 		if (!pending.isEmpty())
-			parts << QStringLiteral("Falta confirmar el cierre en %1.").arg(pending.join(QStringLiteral(", ")));
+			parts << i18n("Falta confirmar el cierre en %1.").arg(pending.join(QStringLiteral(", ")));
 		if (!unknown.isEmpty())
-			parts << QStringLiteral("Revisá en %1 si quedó un LIVE creado.").arg(unknown.join(QStringLiteral(", ")));
+			parts << i18n("Revisá en %1 si quedó un LIVE creado.").arg(unknown.join(QStringLiteral(", ")));
 		setState(SessionState::Attention, parts.join(QLatin1Char(' ')));
 		return;
 	}
 	for (const QString &id : sessionTargets())
 		at(id).inSession = false;
 	refreshIdleStates();
-	setState(SessionState::Idle, QStringLiteral("Transmisión finalizada en los destinos confirmados."));
+	setState(SessionState::Idle, i18n("Transmisión finalizada en los destinos confirmados."));
 }
 
 void Coordinator::finalizeRecovered()
@@ -793,11 +794,11 @@ void Coordinator::finalizeRecovered()
 						return;
 					if (failures->isEmpty()) {
 						Journal::shared().setSessionState(session.uuid, QStringLiteral("FINISHED"));
-						setState(SessionState::Idle, QStringLiteral("Se cerró la emisión anterior."));
+						setState(SessionState::Idle, i18n("Se cerró la emisión anterior."));
 					} else {
 						recovered_ = Journal::shared().unfinished();
 						setState(SessionState::Attention,
-							 QStringLiteral("No se pudo confirmar el cierre en %1.").arg(failures->join(QStringLiteral(", "))));
+							 i18n("No se pudo confirmar el cierre en %1.").arg(failures->join(QStringLiteral(", "))));
 					}
 				});
 	}
@@ -817,7 +818,7 @@ void Coordinator::acknowledge()
 			continue;
 		if (target.state == TargetState::PrepareUnknown) {
 			target.message.clear();
-			Journal::shared().updateTarget(sessionUuid_, {id, QStringLiteral("DISCARDED"), {}, {}, {}, QStringLiteral("revisado por el operador")});
+			Journal::shared().updateTarget(sessionUuid_, {id, QStringLiteral("DISCARDED"), {}, {}, {}, i18n("revisado por el operador")});
 		}
 		target.inSession = false;
 	}

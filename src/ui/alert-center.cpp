@@ -1,5 +1,6 @@
 #include "ui/alert-center.hpp"
 
+#include "core/i18n.hpp"
 #include "storage/settings.hpp"
 
 #include <obs-frontend-api.h>
@@ -92,11 +93,11 @@ void AlertCenter::onSessionChanged()
 		if (!view.inSession || before == view.state)
 			continue;
 		if (view.state == TargetState::Reconnecting && sending(before))
-			notify(QStringLiteral("%1 perdió la conexión; reintentando.").arg(view.name), false);
+			notify(i18n("%1 perdió la conexión; reintentando.").arg(view.name), false);
 		else if (needsAttention(view.state) && !needsAttention(before))
-			notify(QStringLiteral("%1 se cayó y necesita atención.").arg(view.name), true);
+			notify(i18n("%1 se cayó y necesita atención.").arg(view.name), true);
 		else if (sending(view.state) && (before == TargetState::Reconnecting || before == TargetState::Failed))
-			notify(QStringLiteral("%1 volvió a transmitir.").arg(view.name), false);
+			notify(i18n("%1 volvió a transmitir.").arg(view.name), false);
 	}
 	watchTracks();
 }
@@ -107,11 +108,11 @@ void AlertCenter::onRadioChanged()
 	const radio::RadioState before = previousRadio_;
 	previousRadio_ = state;
 	if (state == radio::RadioState::Reconnecting && before == radio::RadioState::OnAir)
-		notify(QStringLiteral("La radio perdió la conexión; reintentando."), false);
+		notify(i18n("La radio perdió la conexión; reintentando."), false);
 	else if (state == radio::RadioState::Failed && (before == radio::RadioState::OnAir || before == radio::RadioState::Reconnecting))
-		notify(QStringLiteral("La radio se cayó: %1").arg(radio_->message()), true);
+		notify(i18n("La radio se cayó: %1").arg(radio_->message()), true);
 	else if (state == radio::RadioState::OnAir && before == radio::RadioState::Reconnecting)
-		notify(QStringLiteral("La radio volvió al aire."), false);
+		notify(i18n("La radio volvió al aire."), false);
 	watchTracks();
 }
 
@@ -157,13 +158,13 @@ void AlertCenter::checkSilence()
 	}
 	if (quietTrack != 0 && silentTrack_ == 0) {
 		silentTrack_ = quietTrack;
-		notify(QStringLiteral("No hay audio en la pista %1 desde hace %2 s. Revisá el micrófono y el mezclador.")
+		notify(i18n("No hay audio en la pista %1 desde hace %2 s. Revisá el micrófono y el mezclador.")
 			       .arg(quietTrack)
 			       .arg(static_cast<int>(kSilenceAlertSeconds)),
 		       true);
 	} else if (quietTrack == 0 && silentTrack_ != 0) {
 		silentTrack_ = 0;
-		notify(QStringLiteral("Volvió el audio."), false);
+		notify(i18n("Volvió el audio."), false);
 	} else if (silentTrack_ != 0) {
 		emit changed();
 	}

@@ -1,5 +1,6 @@
 #include "storage/settings.hpp"
 
+#include "core/i18n.hpp"
 #include "media/media-profile.hpp"
 #include "storage/json-file.hpp"
 
@@ -44,8 +45,12 @@ QString renderTemplateText(const QString &text, const QDateTime &when)
 {
 	const QDateTime local = when.toLocalTime();
 	QString rendered = text;
-	rendered.replace(QStringLiteral("{fecha}"), local.toString(QStringLiteral("dd/MM/yyyy")));
-	rendered.replace(QStringLiteral("{hora}"), local.toString(QStringLiteral("HH:mm")));
+	const QString date = interfaceLocale().toString(local.date(), i18n("dd/MM/yyyy"));
+	const QString time = local.toString(QStringLiteral("HH:mm"));
+	for (const QString &token : {QStringLiteral("{fecha}"), QStringLiteral("{date}")})
+		rendered.replace(token, date);
+	for (const QString &token : {QStringLiteral("{hora}"), QStringLiteral("{time}")})
+		rendered.replace(token, time);
 	return rendered.trimmed();
 }
 

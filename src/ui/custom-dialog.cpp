@@ -1,5 +1,7 @@
 #include "ui/custom-dialog.hpp"
 
+#include "core/i18n.hpp"
+
 #include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
@@ -18,20 +20,20 @@ CustomDestinationDialog::CustomDestinationDialog(const CustomDestination &curren
 	  name_(new QLineEdit(current.name, this)),
 	  server_(new QLineEdit(current.server, this)),
 	  key_(new QLineEdit(this)),
-	  showKey_(new QCheckBox(QStringLiteral("Mostrar"), this)),
+	  showKey_(new QCheckBox(i18n("Mostrar"), this)),
 	  watchUrl_(new QLineEdit(current.watchUrl, this)),
 	  status_(new QLabel(this)),
 	  keyStored_(!current.key.isEmpty())
 {
-	setWindowTitle(existing ? QStringLiteral("Editar destino") : QStringLiteral("Agregar destino RTMP"));
+	setWindowTitle(existing ? i18n("Editar destino") : i18n("Agregar destino RTMP"));
 	setObjectName(QStringLiteral("multistream-custom"));
 	setMinimumWidth(500);
 
-	name_->setPlaceholderText(QStringLiteral("Kick, Vimeo, servidor propio…"));
+	name_->setPlaceholderText(i18n("Kick, Vimeo, servidor propio…"));
 	server_->setPlaceholderText(QStringLiteral("rtmp://servidor/app o rtmps://…"));
 	key_->setEchoMode(QLineEdit::Password);
-	key_->setPlaceholderText(keyStored_ ? QStringLiteral("Guardada en el llavero del sistema") : QStringLiteral("Clave de transmisión"));
-	watchUrl_->setPlaceholderText(QStringLiteral("Opcional: enlace para abrir el directo"));
+	key_->setPlaceholderText(keyStored_ ? i18n("Guardada en el llavero del sistema") : i18n("Clave de transmisión"));
+	watchUrl_->setPlaceholderText(i18n("Opcional: enlace para abrir el directo"));
 	auto *keyRow = new QHBoxLayout();
 	keyRow->addWidget(key_, 1);
 	keyRow->addWidget(showKey_);
@@ -41,19 +43,19 @@ CustomDestinationDialog::CustomDestinationDialog(const CustomDestination &curren
 
 	auto *form = new QFormLayout();
 	form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-	form->addRow(QStringLiteral("Nombre"), name_);
-	form->addRow(QStringLiteral("Servidor"), server_);
-	form->addRow(QStringLiteral("Clave"), keyRow);
-	form->addRow(QStringLiteral("Ver en"), watchUrl_);
+	form->addRow(i18n("Nombre"), name_);
+	form->addRow(i18n("Servidor"), server_);
+	form->addRow(i18n("Clave"), keyRow);
+	form->addRow(i18n("Ver en"), watchUrl_);
 
 	auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
-	buttons->button(QDialogButtonBox::Save)->setText(QStringLiteral("Guardar"));
-	buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("Cancelar"));
+	buttons->button(QDialogButtonBox::Save)->setText(i18n("Guardar"));
+	buttons->button(QDialogButtonBox::Cancel)->setText(i18n("Cancelar"));
 	if (existing) {
-		auto *remove = buttons->addButton(QStringLiteral("Quitar destino"), QDialogButtonBox::DestructiveRole);
+		auto *remove = buttons->addButton(i18n("Quitar destino"), QDialogButtonBox::DestructiveRole);
 		connect(remove, &QPushButton::clicked, this, [this] {
 			const auto answer = QMessageBox::question(this, windowTitle(),
-								  QStringLiteral("¿Quitar «%1»? Se borra también su clave.").arg(name_->text()));
+								  i18n("¿Quitar «%1»? Se borra también su clave.").arg(name_->text()));
 			if (answer != QMessageBox::Yes)
 				return;
 			removalRequested_ = true;
@@ -84,11 +86,11 @@ void CustomDestinationDialog::accept()
 	const QString scheme = QUrl(entered.server).scheme();
 	QString problem;
 	if (entered.name.isEmpty())
-		problem = QStringLiteral("Poné un nombre para reconocer el destino.");
+		problem = i18n("Poné un nombre para reconocer el destino.");
 	else if (scheme != QStringLiteral("rtmp") && scheme != QStringLiteral("rtmps"))
-		problem = QStringLiteral("El servidor tiene que empezar con rtmp:// o rtmps://.");
+		problem = i18n("El servidor tiene que empezar con rtmp:// o rtmps://.");
 	else if (entered.key.isEmpty() && !keyStored_)
-		problem = QStringLiteral("Falta la clave de transmisión.");
+		problem = i18n("Falta la clave de transmisión.");
 	if (!problem.isEmpty()) {
 		status_->setText(problem);
 		status_->setVisible(true);

@@ -56,12 +56,12 @@ def obs_running() -> bool:
     return subprocess.run(["pgrep", "-xq", "OBS"]).returncode == 0
 
 
-def launch_obs(timeout: float = 60, dev_targets: bool = False, demo: bool = False) -> obs.ReqClient:
+def launch_obs(timeout: float = 60, dev_targets: bool = False, demo: bool = False, language: str = "es") -> obs.ReqClient:
     if not obs_running():
         sentinels = Path.home() / "Library/Application Support/obs-studio/.sentinel"
         for marker in sentinels.glob("run_*"):
             marker.unlink(missing_ok=True)
-        variables = {"MULTISTREAM_AUTOMATION": "1"}
+        variables = {"MULTISTREAM_AUTOMATION": "1", "MULTISTREAM_LANGUAGE": language}
         if dev_targets:
             variables["MULTISTREAM_DEV_TARGETS"] = "1"
         if demo:

@@ -1,5 +1,6 @@
 #include "orchestration/scheduler.hpp"
 
+#include "core/i18n.hpp"
 #include "storage/settings.hpp"
 
 #include <QJsonArray>
@@ -56,11 +57,11 @@ QHash<QString, QString> ScheduledEntry::refs() const
 
 QString ScheduledEntry::shareText(const Coordinator &coordinator) const
 {
-	const QLocale spanish(QLocale::Spanish);
+	const QLocale locale = interfaceLocale();
 	const QDateTime local = startsAt.toLocalTime();
 	QStringList lines;
 	lines << title;
-	lines << QStringLiteral("%1, %2").arg(spanish.toString(local.date(), QStringLiteral("dddd d 'de' MMMM")), local.toString(QStringLiteral("HH:mm")));
+	lines << QStringLiteral("%1, %2").arg(locale.toString(local.date(), i18n("dddd d 'de' MMMM")), local.toString(QStringLiteral("HH:mm")));
 	for (auto it = broadcasts.begin(); it != broadcasts.end(); ++it) {
 		if (!it->publicUrl.isEmpty())
 			lines << QStringLiteral("%1: %2").arg(coordinator.target(it.key()).name, it->publicUrl);

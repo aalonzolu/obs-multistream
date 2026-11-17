@@ -1,5 +1,7 @@
 #include "media/media-engine.hpp"
 
+#include "core/i18n.hpp"
+
 #include <QJsonArray>
 
 namespace multistream {
@@ -21,13 +23,13 @@ bool MediaEngine::prepareEncoders(const MediaProfile &profile, QString *error)
 bool MediaEngine::startTarget(const IngestTarget &target, QString *error)
 {
 	if (!encoders_.ready()) {
-		*error = QStringLiteral("Los codificadores no están preparados.");
+		*error = i18n("Los codificadores no están preparados.");
 		return false;
 	}
 	auto existing = outputs_.find(target.id);
 	if (existing != outputs_.end()) {
 		if (existing->second->busy()) {
-			*error = QStringLiteral("La salida %1 ya está activa.").arg(target.id);
+			*error = i18n("La salida %1 ya está activa.").arg(target.id);
 			return false;
 		}
 		outputs_.erase(existing);

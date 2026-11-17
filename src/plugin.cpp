@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 
+#include "core/i18n.hpp"
 #include "build-config.hpp"
 #include "providers/app-credentials.hpp"
 #include "providers/custom-rtmp.hpp"
@@ -171,7 +172,7 @@ void Plugin::handleSave(obs_data_t *data, bool saving, void *self)
 void Plugin::registerHotkeys()
 {
 	startHotkey_ = obs_hotkey_register_frontend(
-		"obs_multistream.start", "Multistream: transmitir a los destinos elegidos",
+		"obs_multistream.start", i18n("Multistream: transmitir a los destinos elegidos").toUtf8().constData(),
 		[](void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
 			auto *self = static_cast<Plugin *>(data);
 			if (pressed && !self->coordinator_->streaming())
@@ -179,7 +180,7 @@ void Plugin::registerHotkeys()
 		},
 		this);
 	stopHotkey_ = obs_hotkey_register_frontend(
-		"obs_multistream.stop", "Multistream: finalizar transmisión",
+		"obs_multistream.stop", i18n("Multistream: finalizar transmisión").toUtf8().constData(),
 		[](void *data, obs_hotkey_id, obs_hotkey_t *, bool pressed) {
 			auto *self = static_cast<Plugin *>(data);
 			if (pressed)
@@ -267,11 +268,11 @@ bool Plugin::confirmCloseWhileStreaming()
 #if QT_VERSION >= QT_VERSION_CHECK(6, 6, 0)
 	box.setOption(QMessageBox::Option::DontUseNativeDialog);
 #endif
-	box.setText(radio_->active() && !coordinator_->streaming() ? QStringLiteral("La radio está al aire.")
-								   : QStringLiteral("Multistream está transmitiendo."));
-	box.setInformativeText(QStringLiteral("Si cerrás OBS, se detiene la señal en todos los destinos."));
-	QPushButton *finish = box.addButton(QStringLiteral("Finalizar y salir"), QMessageBox::DestructiveRole);
-	box.addButton(QStringLiteral("Seguir transmitiendo"), QMessageBox::RejectRole);
+	box.setText(radio_->active() && !coordinator_->streaming() ? i18n("La radio está al aire.")
+								   : i18n("Multistream está transmitiendo."));
+	box.setInformativeText(i18n("Si cerrás OBS, se detiene la señal en todos los destinos."));
+	QPushButton *finish = box.addButton(i18n("Finalizar y salir"), QMessageBox::DestructiveRole);
+	box.addButton(i18n("Seguir transmitiendo"), QMessageBox::RejectRole);
 	box.exec();
 	return box.clickedButton() == finish;
 }
@@ -280,6 +281,15 @@ void Plugin::registerCaptureRequests()
 {
 	vendor_.add(QStringLiteral("DevRemember"), [](const QJsonObject &request) {
 		Settings::shared().recordTemplateUse(text(request, "title"), text(request, "description"));
+		return success();
+	});
+
+	vendor_.add(QStringLiteral("DevDisconnect"), [this](const QJsonObject &request) {
+		Provider *provider = coordinator_->provider(text(request, "provider"));
+		if (!provider)
+			return failure(QStringLiteral("destino desconocido"));
+		provider->disconnectAccount();
+		emit controller_->connectionsChanged();
 		return success();
 	});
 

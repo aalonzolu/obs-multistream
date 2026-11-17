@@ -1,5 +1,6 @@
 #include "ui/status-strip.hpp"
 
+#include "core/i18n.hpp"
 #include "providers/provider.hpp"
 #include "ui/alert-center.hpp"
 #include "ui/destination-badge.hpp"
@@ -82,7 +83,7 @@ void addHeader(QMenu &menu, const QString &title, const QString &subtitle, const
 QString identityOf(const TargetView &view)
 {
 	if (!view.account.connected())
-		return QStringLiteral("Sin cuenta conectada");
+		return i18n("Sin cuenta conectada");
 	return view.account.destinationName.isEmpty() ? view.account.displayName : view.account.destinationName;
 }
 
@@ -110,7 +111,7 @@ StatusStrip::StatusStrip(SessionController *controller, QWidget *parent)
 	settings_->setAutoRaise(true);
 	settings_->setFixedSize(22, 22);
 	settings_->setToolTip(QStringLiteral("Multistream"));
-	settings_->setAccessibleName(QStringLiteral("Multistream: opciones"));
+	settings_->setAccessibleName(i18n("Multistream: opciones"));
 
 	auto *layout = new QHBoxLayout(this);
 	layout->setContentsMargins(4, 0, 4, 0);
@@ -177,7 +178,7 @@ void StatusStrip::render()
 	session_->setBreathing(state == SessionState::Live);
 	session_->setVisible(!session.label.isEmpty());
 	if (!recovered.isEmpty())
-		session_->setToolTip(QStringLiteral("Quedó una emisión sin cerrar: «%1». No se reinicia sola.").arg(recovered.first().title));
+		session_->setToolTip(i18n("Quedó una emisión sin cerrar: «%1». No se reinicia sola.").arg(recovered.first().title));
 	else
 		session_->setToolTip(coordinator_->message().isEmpty() ? coordinator_->title() : coordinator_->message());
 	if (timed && !ticker_.isActive())
@@ -188,16 +189,16 @@ void StatusStrip::render()
 	const UpdateChecker *updates = controller_->updates();
 	update_->setVisible(updates->available() && !locked(state));
 	if (updates->available()) {
-		update_->setStatus(Tone::Ready, QStringLiteral("Nueva versión %1").arg(updates->latestVersion()));
-		update_->setToolTip(QStringLiteral("Hay una versión nueva de Multistream. Clic para descargarla."));
-		update_->setAccessibleName(QStringLiteral("Multistream %1 disponible").arg(updates->latestVersion()));
+		update_->setStatus(Tone::Ready, i18n("Nueva versión %1").arg(updates->latestVersion()));
+		update_->setToolTip(i18n("Hay una versión nueva de Multistream. Clic para descargarla."));
+		update_->setAccessibleName(i18n("Multistream %1 disponible").arg(updates->latestVersion()));
 	}
 
 	const AlertCenter *alerts = controller_->alerts();
 	silence_->setVisible(alerts->silent());
 	if (alerts->silent()) {
-		silence_->setStatus(Tone::Attention, QStringLiteral("Sin audio · %1 s").arg(alerts->silentSeconds()));
-		silence_->setToolTip(QStringLiteral("No hay audio en la pista %1. Revisá el micrófono y el mezclador de OBS.").arg(alerts->silentTrack()));
+		silence_->setStatus(Tone::Attention, i18n("Sin audio · %1 s").arg(alerts->silentSeconds()));
+		silence_->setToolTip(i18n("No hay audio en la pista %1. Revisá el micrófono y el mezclador de OBS.").arg(alerts->silentTrack()));
 	}
 
 	for (const TargetView &view : targets) {
@@ -212,7 +213,7 @@ void StatusStrip::render()
 		QString tip = QStringLiteral("%1 · %2\n%3").arg(view.name, identityOf(view), presentation.label);
 		if (!view.message.isEmpty() && presentation.tone == Tone::Attention)
 			tip += QStringLiteral("\n%1").arg(view.message);
-		tip += QStringLiteral("\n\nClic: estado de todos los destinos. Clic derecho: acciones rápidas.");
+		tip += i18n("\n\nClic: estado de todos los destinos. Clic derecho: acciones rápidas.");
 		badge->setToolTip(tip);
 		badge->setAccessibleName(QStringLiteral("%1: %2").arg(view.name, presentation.label));
 	}
@@ -227,7 +228,7 @@ void StatusStrip::render()
 	QString radioTip = QStringLiteral("Radio · %1\n%2").arg(station->config().endpoint(), radioState.label);
 	if (!station->message().isEmpty() && radioState.tone != Tone::Live)
 		radioTip += QStringLiteral("\n%1").arg(station->message());
-	radio_->setToolTip(radioTip + QStringLiteral("\n\nClic: estado. Clic derecho: iniciar, detener o configurar."));
+	radio_->setToolTip(radioTip + i18n("\n\nClic: estado. Clic derecho: iniciar, detener o configurar."));
 	radio_->setAccessibleName(QStringLiteral("Radio: %1").arg(radioState.label));
 	if (radioOnAir && !ticker_.isActive())
 		ticker_.start();
@@ -244,10 +245,10 @@ void StatusStrip::openRadioMenu()
 		  config.configured() ? QStringLiteral("%1 · %2").arg(config.endpoint(), presentation.label) : presentation.label,
 		  presentation.tone == Tone::Attention ? station->message() : QString());
 	if (config.configured())
-		actions.add(station->active() ? QStringLiteral("Detener la radio") : QStringLiteral("Iniciar la radio"),
+		actions.add(station->active() ? i18n("Detener la radio") : i18n("Iniciar la radio"),
 			    [this] { controller_->toggleRadio(); });
-	actions.add(QStringLiteral("Configurar radio…"), [this] { controller_->openRadioSettings(); });
-	actions.add(QStringLiteral("Copiar detalles técnicos"), [station] { QApplication::clipboard()->setText(radioDetails(*station)); });
+	actions.add(i18n("Configurar radio…"), [this] { controller_->openRadioSettings(); });
+	actions.add(i18n("Copiar detalles técnicos"), [station] { QApplication::clipboard()->setText(radioDetails(*station)); });
 	actions.run(popupAbove(menu, radio_));
 }
 
@@ -270,33 +271,33 @@ void StatusStrip::openDestinationMenu(DestinationBadge *badge)
 	addHeader(menu, view.name, QStringLiteral("%1 · %2").arg(identityOf(view), presentation.label), explain ? view.message : QString());
 
 	if (view.inSession && !view.publicUrl.isEmpty())
-		actions.add(QStringLiteral("Abrir el directo"), [url = view.publicUrl] { openInBrowser(url); });
+		actions.add(i18n("Abrir el directo"), [url = view.publicUrl] { openInBrowser(url); });
 	if (view.state == TargetState::ClosePending)
-		actions.add(QStringLiteral("Reintentar el cierre"), [this, id] { coordinator_->retry(id); });
+		actions.add(i18n("Reintentar el cierre"), [this, id] { coordinator_->retry(id); });
 	else if (view.canRetry)
-		actions.add(QStringLiteral("Reintentar en el mismo directo"), [this, id] { coordinator_->retry(id); });
+		actions.add(i18n("Reintentar en el mismo directo"), [this, id] { coordinator_->retry(id); });
 	if (view.canRestart)
-		actions.add(QStringLiteral("Crear un directo nuevo aquí"), [this, id] { coordinator_->restartTarget(id); });
+		actions.add(i18n("Crear un directo nuevo aquí"), [this, id] { coordinator_->restartTarget(id); });
 
 	if (connecting) {
-		actions.add(QStringLiteral("Cancelar la autorización"), [this, id] { controller_->connectProvider(id); });
+		actions.add(i18n("Cancelar la autorización"), [this, id] { controller_->connectProvider(id); });
 	} else if (!isLocked) {
 		const bool custom = id.startsWith(QStringLiteral("custom-"));
-		const QString connectLabel = custom ? QStringLiteral("Editar destino…")
-					     : view.state == TargetState::AuthRequired ? QStringLiteral("Reconectar…")
-					     : view.account.connected()               ? QStringLiteral("Cambiar cuenta…")
-										      : QStringLiteral("Conectar…");
+		const QString connectLabel = custom ? i18n("Editar destino…")
+					     : view.state == TargetState::AuthRequired ? i18n("Reconectar…")
+					     : view.account.connected()               ? i18n("Cambiar cuenta…")
+										      : i18n("Conectar…");
 		actions.add(connectLabel, [this, id] { controller_->connectProvider(id); });
 		Provider *provider = coordinator_->provider(id);
 		if (view.account.connected() && provider && !provider->destinationChoices().isEmpty())
-			actions.add(QStringLiteral("Elegir página…"), [this, id] { controller_->chooseDestination(id); });
+			actions.add(i18n("Elegir página…"), [this, id] { controller_->chooseDestination(id); });
 	}
 	if (view.account.connected())
-		actions.add(QStringLiteral("Copiar detalles técnicos"), [view] { QApplication::clipboard()->setText(technicalDetails(view)); });
+		actions.add(i18n("Copiar detalles técnicos"), [view] { QApplication::clipboard()->setText(technicalDetails(view)); });
 	const bool removable = id.startsWith(QStringLiteral("custom-"));
 	if (!isLocked && (view.account.connected() || removable) && !connecting) {
 		menu.addSeparator();
-		actions.add(removable ? QStringLiteral("Quitar destino") : QStringLiteral("Desconectar"), [this, id] { controller_->disconnectProvider(id); });
+		actions.add(removable ? i18n("Quitar destino") : i18n("Desconectar"), [this, id] { controller_->disconnectProvider(id); });
 	}
 
 	QAction *chosen = popupAbove(menu, badge);
@@ -309,10 +310,10 @@ void StatusStrip::openUpdateMenu()
 	QMenu menu(this);
 	MenuActions actions(menu);
 	addHeader(menu, QStringLiteral("Multistream %1").arg(updates->latestVersion()),
-		  QStringLiteral("Tenés la %1").arg(QString::fromUtf8(PLUGIN_VERSION)),
-		  QStringLiteral("Bajá el instalador nuevo y abrilo con OBS cerrado. Las cuentas y la configuración se conservan."));
-	actions.add(QStringLiteral("Descargar la versión nueva…"), [updates] { openInBrowser(updates->releaseUrl().toString()); });
-	actions.add(QStringLiteral("Ocultar este aviso"), [updates] { updates->dismiss(); });
+		  i18n("Tenés la %1").arg(QString::fromUtf8(PLUGIN_VERSION)),
+		  i18n("Bajá el instalador nuevo y abrilo con OBS cerrado. Las cuentas y la configuración se conservan."));
+	actions.add(i18n("Descargar la versión nueva…"), [updates] { openInBrowser(updates->releaseUrl().toString()); });
+	actions.add(i18n("Ocultar este aviso"), [updates] { updates->dismiss(); });
 	actions.run(popupAbove(menu, update_));
 }
 
@@ -323,36 +324,36 @@ void StatusStrip::openSettingsMenu()
 	QMenu menu(this);
 	MenuActions actions(menu);
 	if (updates->available()) {
-		actions.add(QStringLiteral("Descargar Multistream %1…").arg(updates->latestVersion()),
+		actions.add(i18n("Descargar Multistream %1…").arg(updates->latestVersion()),
 			    [updates] { openInBrowser(updates->releaseUrl().toString()); });
 		menu.addSeparator();
 	}
 	const bool live = state == SessionState::Live || state == SessionState::Partial;
-	actions.add(live ? QStringLiteral("Finalizar transmisión…") : QStringLiteral("Transmitir…"), [this] { controller_->toggleStreaming(); },
+	actions.add(live ? i18n("Finalizar transmisión…") : i18n("Transmitir…"), [this] { controller_->toggleStreaming(); },
 		    state != SessionState::Stopping && state != SessionState::Checking && state != SessionState::Preparing);
-	actions.add(QStringLiteral("Estado de la transmisión…"), [this] { controller_->openStatusWindow(); });
-	actions.add(controller_->radio()->active() ? QStringLiteral("Detener la radio") : QStringLiteral("Iniciar la radio"),
+	actions.add(i18n("Estado de la transmisión…"), [this] { controller_->openStatusWindow(); });
+	actions.add(controller_->radio()->active() ? i18n("Detener la radio") : i18n("Iniciar la radio"),
 		    [this] { controller_->toggleRadio(); }, controller_->radio()->config().configured());
-	actions.add(QStringLiteral("Configurar radio…"), [this] { controller_->openRadioSettings(); });
-	actions.add(QStringLiteral("Programar transmisión…"), [this] { controller_->openScheduleWindow(); });
-	actions.add(QStringLiteral("Agregar destino RTMP…"), [this] { controller_->addCustomDestination(); });
-	actions.add(QStringLiteral("Apps de YouTube y Facebook…"), [this] { controller_->openAppsSettings(); });
+	actions.add(i18n("Configurar radio…"), [this] { controller_->openRadioSettings(); });
+	actions.add(i18n("Programar transmisión…"), [this] { controller_->openScheduleWindow(); });
+	actions.add(i18n("Agregar destino RTMP…"), [this] { controller_->addCustomDestination(); });
+	actions.add(i18n("Apps de YouTube y Facebook…"), [this] { controller_->openAppsSettings(); });
 	menu.addSeparator();
 	AlertCenter *alerts = controller_->alerts();
-	QAction *sound = actions.add(QStringLiteral("Avisos con sonido"), {});
+	QAction *sound = actions.add(i18n("Avisos con sonido"), {});
 	sound->setCheckable(true);
 	sound->setChecked(alerts->soundEnabled());
-	QAction *silenceWatch = actions.add(QStringLiteral("Avisar si no hay audio"), {});
+	QAction *silenceWatch = actions.add(i18n("Avisar si no hay audio"), {});
 	silenceWatch->setCheckable(true);
 	silenceWatch->setChecked(alerts->silenceWatchEnabled());
 	menu.addSeparator();
-	QAction *replace = actions.add(QStringLiteral("Iniciar desde el botón de OBS"), {});
+	QAction *replace = actions.add(i18n("Iniciar desde el botón de OBS"), {});
 	replace->setCheckable(true);
 	replace->setChecked(controller_->replacesStreamButton());
-	QAction *updateWatch = actions.add(QStringLiteral("Avisar si hay una versión nueva"), {});
+	QAction *updateWatch = actions.add(i18n("Avisar si hay una versión nueva"), {});
 	updateWatch->setCheckable(true);
 	updateWatch->setChecked(updates->enabled());
-	actions.add(QStringLiteral("Comprobar configuración…"), [this] { controller_->runDiagnostics(); });
+	actions.add(i18n("Comprobar configuración…"), [this] { controller_->runDiagnostics(); });
 
 	QAction *chosen = popupAbove(menu, settings_);
 	if (chosen == replace)

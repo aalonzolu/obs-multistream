@@ -1,5 +1,7 @@
 #include "ui/stream-button-bridge.hpp"
 
+#include "core/i18n.hpp"
+
 #include <obs-frontend-api.h>
 
 #include <QKeyEvent>
@@ -67,7 +69,7 @@ void StreamButtonBridge::render()
 		styled_ = false;
 		return;
 	}
-	button_->setToolTip(enabled_ ? QStringLiteral("Multistream: elegí destinos, título y descripción antes de salir al aire")
+	button_->setToolTip(enabled_ ? i18n("Multistream: elegí destinos, título y descripción antes de salir al aire")
 				     : nativeToolTip_);
 
 	const SessionState state = coordinator_->state();
@@ -84,18 +86,18 @@ void StreamButtonBridge::render()
 	switch (state) {
 	case SessionState::Checking:
 	case SessionState::Preparing:
-		button_->setText(QStringLiteral("Preparando transmisión…"));
+		button_->setText(i18n("Preparando transmisión…"));
 		button_->setEnabled(false);
 		setStyleClass("");
 		break;
 	case SessionState::Live:
 	case SessionState::Partial:
-		button_->setText(QStringLiteral("Finalizar transmisión"));
+		button_->setText(i18n("Finalizar transmisión"));
 		button_->setEnabled(true);
 		setStyleClass("state-active");
 		break;
 	case SessionState::Stopping:
-		button_->setText(QStringLiteral("Finalizando…"));
+		button_->setText(i18n("Finalizando…"));
 		button_->setEnabled(false);
 		setStyleClass("state-active");
 		break;

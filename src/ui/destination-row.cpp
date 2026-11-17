@@ -1,5 +1,6 @@
 #include "ui/destination-row.hpp"
 
+#include "core/i18n.hpp"
 #include "ui/brand-mark.hpp"
 #include "ui/presentation.hpp"
 #include "ui/status-pill.hpp"
@@ -46,7 +47,7 @@ DestinationRow::DestinationRow(const QString &providerId, QWidget *parent)
 	more_->setProperty("class", "icon-dots-vert");
 	more_->setAutoRaise(true);
 	more_->setFixedSize(26, 26);
-	more_->setAccessibleName(QStringLiteral("Más acciones"));
+	more_->setAccessibleName(i18n("Más acciones"));
 	more_->setStyleSheet(QStringLiteral("QToolButton::menu-indicator { image: none; width: 0; }"));
 	more_->setPopupMode(QToolButton::InstantPopup);
 	more_->setMenu(new QMenu(more_));
@@ -74,12 +75,12 @@ QString DestinationRow::details(const TargetView &view, bool attention) const
 	if (!view.inSession || view.stats.totalBytes <= 0)
 		return {};
 	QStringList parts;
-	parts << QStringLiteral("%1 MB enviados").arg(static_cast<double>(view.stats.totalBytes) / 1e6, 0, 'f', 1);
-	parts << (view.stats.droppedFrames == 1 ? QStringLiteral("1 frame perdido")
-						: QStringLiteral("%1 frames perdidos").arg(view.stats.droppedFrames));
+	parts << i18n("%1 MB enviados").arg(static_cast<double>(view.stats.totalBytes) / 1e6, 0, 'f', 1);
+	parts << (view.stats.droppedFrames == 1 ? i18n("1 frame perdido")
+						: i18n("%1 frames perdidos").arg(view.stats.droppedFrames));
 	if (view.stats.reconnects > 0)
-		parts << (view.stats.reconnects == 1 ? QStringLiteral("1 reconexión")
-						     : QStringLiteral("%1 reconexiones").arg(view.stats.reconnects));
+		parts << (view.stats.reconnects == 1 ? i18n("1 reconexión")
+						     : i18n("%1 reconexiones").arg(view.stats.reconnects));
 	return parts.join(QStringLiteral(" · "));
 }
 
@@ -88,23 +89,23 @@ void DestinationRow::rebuildMenu(const TargetView &view, bool locked)
 	QMenu *menu = more_->menu();
 	menu->clear();
 	if (!view.publicUrl.isEmpty() && view.inSession)
-		menu->addAction(QStringLiteral("Abrir el directo"), this, [this] { emit openRequested(publicUrl_); });
+		menu->addAction(i18n("Abrir el directo"), this, [this] { emit openRequested(publicUrl_); });
 	if (view.canRetry && view.state != TargetState::ClosePending)
-		menu->addAction(QStringLiteral("Reintentar en el mismo directo"), this, [this] { emit retryRequested(providerId_); });
+		menu->addAction(i18n("Reintentar en el mismo directo"), this, [this] { emit retryRequested(providerId_); });
 	if (view.canRestart)
-		menu->addAction(QStringLiteral("Crear un directo nuevo aquí"), this, [this] { emit restartRequested(providerId_); });
-	menu->addAction(QStringLiteral("Copiar detalles técnicos"), this, [this] { QApplication::clipboard()->setText(technicalDetails(last_)); });
+		menu->addAction(i18n("Crear un directo nuevo aquí"), this, [this] { emit restartRequested(providerId_); });
+	menu->addAction(i18n("Copiar detalles técnicos"), this, [this] { QApplication::clipboard()->setText(technicalDetails(last_)); });
 	menu->addSeparator();
 	const bool custom = providerId_.startsWith(QStringLiteral("custom-"));
-	const QString changeLabel = custom ? QStringLiteral("Editar destino…")
-				  : view.account.connected() ? QStringLiteral("Cambiar cuenta…") : QStringLiteral("Conectar…");
+	const QString changeLabel = custom ? i18n("Editar destino…")
+				  : view.account.connected() ? i18n("Cambiar cuenta…") : i18n("Conectar…");
 	QAction *change = menu->addAction(changeLabel, this, [this] { emit connectRequested(providerId_); });
 	change->setEnabled(!locked);
 	if (providerId_ == QStringLiteral("facebook")) {
-		QAction *page = menu->addAction(QStringLiteral("Elegir página…"), this, [this] { emit chooseDestinationRequested(providerId_); });
+		QAction *page = menu->addAction(i18n("Elegir página…"), this, [this] { emit chooseDestinationRequested(providerId_); });
 		page->setEnabled(!locked && view.account.connected());
 	}
-	QAction *disconnect = menu->addAction(custom ? QStringLiteral("Quitar destino") : QStringLiteral("Desconectar"), this,
+	QAction *disconnect = menu->addAction(custom ? i18n("Quitar destino") : i18n("Desconectar"), this,
 					      [this] { emit disconnectRequested(providerId_); });
 	disconnect->setEnabled(!locked && (custom || view.account.connected()));
 }
@@ -113,7 +114,7 @@ void DestinationRow::render(const TargetView &view, bool locked, bool connecting
 {
 	last_ = view;
 	name_->setText(view.name);
-	QString identity = view.account.connected() ? view.account.destinationName : QStringLiteral("Sin cuenta conectada");
+	QString identity = view.account.connected() ? view.account.destinationName : i18n("Sin cuenta conectada");
 	if (identity.isEmpty())
 		identity = view.account.displayName;
 	identity_->setFullText(identity);
@@ -125,7 +126,7 @@ void DestinationRow::render(const TargetView &view, bool locked, bool connecting
 
 	const bool outOfSession = locked && !view.inSession;
 	name_->setForegroundRole(outOfSession ? QPalette::PlaceholderText : QPalette::WindowText);
-	const QString detailText = outOfSession ? QStringLiteral("No participa en esta transmisión.")
+	const QString detailText = outOfSession ? i18n("No participa en esta transmisión.")
 						: details(view, presentation.tone == Tone::Attention);
 	details_->setText(detailText);
 	details_->setVisible(!detailText.isEmpty());
@@ -153,14 +154,14 @@ void DestinationRow::render(const TargetView &view, bool locked, bool connecting
 		currentAction_ = Action::None;
 
 	const QMap<Action, QString> labels = {
-		{Action::Connect, providerId_.startsWith(QStringLiteral("custom-")) ? QStringLiteral("Completar") : QStringLiteral("Conectar")},
-		{Action::Reconnect, QStringLiteral("Reconectar")},
-		{Action::ChooseDestination, QStringLiteral("Elegir página")},
-		{Action::Retry, QStringLiteral("Reintentar")},
-		{Action::Restart, QStringLiteral("Nuevo directo")},
-		{Action::RetryClose, QStringLiteral("Reintentar cierre")},
-		{Action::Open, QStringLiteral("Abrir")},
-		{Action::Cancel, QStringLiteral("Cancelar")},
+		{Action::Connect, providerId_.startsWith(QStringLiteral("custom-")) ? i18n("Completar") : i18n("Conectar")},
+		{Action::Reconnect, i18n("Reconectar")},
+		{Action::ChooseDestination, i18n("Elegir página")},
+		{Action::Retry, i18n("Reintentar")},
+		{Action::Restart, i18n("Nuevo directo")},
+		{Action::RetryClose, i18n("Reintentar cierre")},
+		{Action::Open, i18n("Abrir")},
+		{Action::Cancel, i18n("Cancelar")},
 	};
 	action_->setText(labels.value(currentAction_));
 	action_->setVisible(currentAction_ != Action::None);

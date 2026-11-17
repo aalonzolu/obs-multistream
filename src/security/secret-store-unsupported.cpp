@@ -1,5 +1,6 @@
 #include "security/secret-store.hpp"
 
+#include "core/i18n.hpp"
 namespace multistream::secrets {
 
 bool available()
@@ -9,12 +10,12 @@ bool available()
 
 QString backendName()
 {
-	return QStringLiteral("sin almacén seguro");
+	return i18n("sin almacén seguro");
 }
 
 bool write(const QString &, const QByteArray &, QString *error)
 {
-	*error = QStringLiteral("Este sistema no tiene un almacén seguro compatible; las cuentas no se pueden guardar.");
+	*error = i18n("Este sistema no tiene un almacén seguro compatible; las cuentas no se pueden guardar.");
 	return false;
 }
 

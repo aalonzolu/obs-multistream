@@ -1,5 +1,6 @@
 #include "ui/schedule-dialog.hpp"
 
+#include "core/i18n.hpp"
 #include "storage/settings.hpp"
 #include "ui/brand-mark.hpp"
 
@@ -61,21 +62,21 @@ ScheduleDialog::ScheduleDialog(Scheduler *scheduler, Coordinator *coordinator, c
 	  when_(new QDateTimeEdit(defaultStart(), this)),
 	  preview_(muted({}, this)),
 	  status_(new QLabel(this)),
-	  submit_(new QPushButton(QStringLiteral("Programar"), this)),
+	  submit_(new QPushButton(i18n("Programar"), this)),
 	  upcoming_(new QVBoxLayout())
 {
-	setWindowTitle(QStringLiteral("Programar transmisión"));
+	setWindowTitle(i18n("Programar transmisión"));
 	setObjectName(QStringLiteral("multistream-schedule"));
 	setMinimumWidth(620);
 
-	title_->setPlaceholderText(QStringLiteral("Transmisión en vivo · {fecha}"));
+	title_->setPlaceholderText(i18n("Transmisión en vivo · {fecha}"));
 	title_->setMaxLength(100);
-	description_->setPlaceholderText(QStringLiteral("Opcional. Se publica en YouTube y Facebook."));
+	description_->setPlaceholderText(i18n("Opcional. Se publica en YouTube y Facebook."));
 	description_->setTabChangesFocus(true);
 	description_->setFixedHeight(description_->fontMetrics().lineSpacing() * 3 + 14);
-	when_->setLocale(QLocale(QLocale::Spanish));
+	when_->setLocale(interfaceLocale());
 	when_->setCalendarPopup(true);
-	when_->setDisplayFormat(QStringLiteral("dddd dd/MM/yyyy HH:mm"));
+	when_->setDisplayFormat(i18n("dddd dd/MM/yyyy HH:mm"));
 	when_->setMinimumDateTime(QDateTime::currentDateTime().addSecs(kMinimumLeadMinutes * 60));
 
 	auto *destinations = new QHBoxLayout();
@@ -88,9 +89,9 @@ ScheduleDialog::ScheduleDialog(Scheduler *scheduler, Coordinator *coordinator, c
 		check->setChecked(ready && !unavailable);
 		check->setEnabled(ready);
 		if (!ready)
-			check->setToolTip(QStringLiteral("Conectá %1 antes de programar.").arg(view.name));
+			check->setToolTip(i18n("Conectá %1 antes de programar.").arg(view.name));
 		else if (unavailable)
-			check->setToolTip(QStringLiteral("La última vez %1 no permitió programar con esta app. Podés marcarlo para intentar de nuevo.").arg(view.name));
+			check->setToolTip(i18n("La última vez %1 no permitió programar con esta app. Podés marcarlo para intentar de nuevo.").arg(view.name));
 		destinations_[id] = check;
 		auto *row = new QHBoxLayout();
 		row->setSpacing(6);
@@ -103,12 +104,12 @@ ScheduleDialog::ScheduleDialog(Scheduler *scheduler, Coordinator *coordinator, c
 
 	auto *form = new QFormLayout();
 	form->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-	form->addRow(QStringLiteral("Título"), title_);
+	form->addRow(i18n("Título"), title_);
 	form->addRow(QString(), preview_);
-	form->addRow(QStringLiteral("Descripción"), description_);
-	form->addRow(QStringLiteral("Empieza"), when_);
-	form->addRow(QStringLiteral("Destinos"), destinations);
-	form->addRow(QString(), muted(QStringLiteral("TikTok y los destinos RTMP no permiten programar; se suman al momento de transmitir. "
+	form->addRow(i18n("Descripción"), description_);
+	form->addRow(i18n("Empieza"), when_);
+	form->addRow(i18n("Destinos"), destinations);
+	form->addRow(QString(), muted(i18n("TikTok y los destinos RTMP no permiten programar; se suman al momento de transmitir. "
 						       "Facebook permite programar hasta 7 días antes."),
 				     this));
 
@@ -116,7 +117,7 @@ ScheduleDialog::ScheduleDialog(Scheduler *scheduler, Coordinator *coordinator, c
 	status_->setTextInteractionFlags(Qt::TextSelectableByMouse);
 	status_->setVisible(false);
 	submit_->setDefault(true);
-	auto *close = new QPushButton(QStringLiteral("Cerrar"), this);
+	auto *close = new QPushButton(i18n("Cerrar"), this);
 	close->setAutoDefault(false);
 	auto *actions = new QHBoxLayout();
 	actions->addStretch();
@@ -135,7 +136,7 @@ ScheduleDialog::ScheduleDialog(Scheduler *scheduler, Coordinator *coordinator, c
 	root->addWidget(status_);
 	root->addLayout(actions);
 	root->addWidget(divider);
-	root->addWidget(heading(QStringLiteral("Próximas transmisiones"), this));
+	root->addWidget(heading(i18n("Próximas transmisiones"), this));
 	root->addLayout(upcoming_);
 	root->addStretch();
 
@@ -157,7 +158,7 @@ void ScheduleDialog::refresh()
 {
 	const QString rendered = renderedTitle();
 	const bool tokens = title_->text().contains(QLatin1Char('{'));
-	preview_->setText(tokens && !rendered.isEmpty() ? QStringLiteral("Se publicará como «%1»").arg(rendered) : QString());
+	preview_->setText(tokens && !rendered.isEmpty() ? i18n("Se publicará como «%1»").arg(rendered) : QString());
 	preview_->setVisible(!preview_->text().isEmpty());
 
 	QString problem;
@@ -165,13 +166,13 @@ void ScheduleDialog::refresh()
 	const auto facebook = destinations_.find(QStringLiteral("facebook"));
 	const bool facebookChosen = facebook != destinations_.end() && facebook->second->isChecked();
 	if (rendered.isEmpty())
-		problem = QStringLiteral("Falta el título.");
+		problem = i18n("Falta el título.");
 	else if (!anySelected)
-		problem = QStringLiteral("Elegí al menos un destino.");
+		problem = i18n("Elegí al menos un destino.");
 	else if (facebookChosen && QDateTime::currentDateTime().daysTo(when_->dateTime()) > kFacebookMaxDays)
-		problem = QStringLiteral("Facebook solo permite programar hasta 7 días antes.");
+		problem = i18n("Facebook solo permite programar hasta 7 días antes.");
 	else if (QDateTime::currentDateTime().secsTo(when_->dateTime()) < kMinimumLeadMinutes * 60)
-		problem = QStringLiteral("Programá con al menos 10 minutos de anticipación.");
+		problem = i18n("Programá con al menos 10 minutos de anticipación.");
 	submit_->setEnabled(problem.isEmpty());
 	submit_->setToolTip(problem);
 	if (!problem.isEmpty() && !title_->text().isEmpty()) {
@@ -190,19 +191,19 @@ void ScheduleDialog::submit()
 			providers << id;
 	}
 	submit_->setEnabled(false);
-	submit_->setText(QStringLiteral("Programando…"));
+	submit_->setText(i18n("Programando…"));
 	Settings::shared().recordTemplateUse(title_->text().trimmed(), description_->toPlainText().trimmed());
 	scheduler_->create(renderedTitle(), renderTemplateText(description_->toPlainText(), when_->dateTime()), when_->dateTime(), providers,
 			   [this](const ScheduledEntry &entry, const QStringList &errors) {
-				   submit_->setText(QStringLiteral("Programar"));
+				   submit_->setText(i18n("Programar"));
 				   status_->setProperty("result", true);
 				   status_->setVisible(true);
 				   if (entry.broadcasts.isEmpty()) {
-					   status_->setText(QStringLiteral("No se pudo programar. %1").arg(errors.join(QStringLiteral(" · "))));
+					   status_->setText(i18n("No se pudo programar. %1").arg(errors.join(QStringLiteral(" · "))));
 				   } else {
 					   QApplication::clipboard()->setText(entry.shareText(*coordinator_));
-					   status_->setText(errors.isEmpty() ? QStringLiteral("Programada. Los enlaces quedaron copiados para compartir.")
-									     : QStringLiteral("Programada con avisos: %1").arg(errors.join(QStringLiteral(" · "))));
+					   status_->setText(errors.isEmpty() ? i18n("Programada. Los enlaces quedaron copiados para compartir.")
+									     : i18n("Programada con avisos: %1").arg(errors.join(QStringLiteral(" · "))));
 				   }
 				   refresh();
 			   });
@@ -216,10 +217,10 @@ void ScheduleDialog::refreshUpcoming()
 	}
 	const QList<ScheduledEntry> entries = scheduler_->upcoming();
 	if (entries.isEmpty()) {
-		upcoming_->addWidget(muted(QStringLiteral("No hay transmisiones programadas."), this));
+		upcoming_->addWidget(muted(i18n("No hay transmisiones programadas."), this));
 		return;
 	}
-	const QLocale spanish(QLocale::Spanish);
+	const QLocale locale = interfaceLocale();
 	for (const ScheduledEntry &entry : entries) {
 		auto *row = new QWidget(this);
 		auto *layout = new QHBoxLayout(row);
@@ -231,13 +232,13 @@ void ScheduleDialog::refreshUpcoming()
 		const QDateTime local = entry.startsAt.toLocalTime();
 		auto *text = new QLabel(QStringLiteral("<b>%1</b><br>%2 · %3")
 						.arg(entry.title.toHtmlEscaped(),
-						     spanish.toString(local, QStringLiteral("dddd d 'de' MMMM, HH:mm")),
-						     spanish.createSeparatedList(names).toHtmlEscaped()),
+						     locale.toString(local, i18n("dddd d 'de' MMMM, HH:mm")),
+						     locale.createSeparatedList(names).toHtmlEscaped()),
 					row);
 		text->setWordWrap(true);
-		auto *copy = new QPushButton(QStringLiteral("Copiar enlaces"), row);
+		auto *copy = new QPushButton(i18n("Copiar enlaces"), row);
 		copy->setAutoDefault(false);
-		auto *cancel = new QPushButton(QStringLiteral("Cancelar…"), row);
+		auto *cancel = new QPushButton(i18n("Cancelar…"), row);
 		cancel->setAutoDefault(false);
 		layout->addWidget(text, 1);
 		layout->addWidget(copy);
@@ -246,20 +247,20 @@ void ScheduleDialog::refreshUpcoming()
 		connect(copy, &QPushButton::clicked, this, [this, entry] {
 			QApplication::clipboard()->setText(entry.shareText(*coordinator_));
 			status_->setProperty("result", true);
-			status_->setText(QStringLiteral("Enlaces de «%1» copiados.").arg(entry.title));
+			status_->setText(i18n("Enlaces de «%1» copiados.").arg(entry.title));
 			status_->setVisible(true);
 		});
 		connect(cancel, &QPushButton::clicked, this, [this, entry] {
 			const auto answer = QMessageBox::question(
 				this, windowTitle(),
-				QStringLiteral("¿Cancelar «%1»? Se borra el directo programado en cada plataforma y los enlaces dejan de funcionar.")
+				i18n("¿Cancelar «%1»? Se borra el directo programado en cada plataforma y los enlaces dejan de funcionar.")
 					.arg(entry.title));
 			if (answer != QMessageBox::Yes)
 				return;
 			scheduler_->cancel(entry.id, [this](const QStringList &errors) {
 				status_->setProperty("result", true);
-				status_->setText(errors.isEmpty() ? QStringLiteral("Transmisión cancelada.")
-								  : QStringLiteral("Cancelada con avisos: %1").arg(errors.join(QStringLiteral(" · "))));
+				status_->setText(errors.isEmpty() ? i18n("Transmisión cancelada.")
+								  : i18n("Cancelada con avisos: %1").arg(errors.join(QStringLiteral(" · "))));
 				status_->setVisible(true);
 			});
 		});

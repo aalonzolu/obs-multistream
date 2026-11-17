@@ -1,5 +1,6 @@
 #include "ui/apps-dialog.hpp"
 
+#include "core/i18n.hpp"
 #include "providers/app-credentials.hpp"
 
 #include <QApplication>
@@ -35,7 +36,7 @@ QLineEdit *secretField(bool stored, QWidget *parent)
 {
 	auto *field = new QLineEdit(parent);
 	field->setEchoMode(QLineEdit::Password);
-	field->setPlaceholderText(stored ? QStringLiteral("Guardada en el llavero del sistema") : QStringLiteral("Clave secreta"));
+	field->setPlaceholderText(stored ? i18n("Guardada en el llavero del sistema") : i18n("Clave secreta"));
 	return field;
 }
 
@@ -71,16 +72,16 @@ QWidget *details(QFormLayout *form, QLabel *note, QWidget *parent)
 
 AppsDialog::AppsDialog(QWidget *parent)
 	: QDialog(parent),
-	  googleBuiltIn_(new QRadioButton(QStringLiteral("App de Multistream"), this)),
-	  googleOwn_(new QRadioButton(QStringLiteral("Mi propia app"), this)),
+	  googleBuiltIn_(new QRadioButton(i18n("App de Multistream"), this)),
+	  googleOwn_(new QRadioButton(i18n("Mi propia app"), this)),
 	  googleClientId_(new QLineEdit(this)),
-	  metaBuiltIn_(new QRadioButton(QStringLiteral("App de Multistream"), this)),
-	  metaOwn_(new QRadioButton(QStringLiteral("Mi propia app"), this)),
+	  metaBuiltIn_(new QRadioButton(i18n("App de Multistream"), this)),
+	  metaOwn_(new QRadioButton(i18n("Mi propia app"), this)),
 	  metaAppId_(new QLineEdit(this)),
 	  metaConfigId_(new QLineEdit(this)),
 	  status_(new QLabel(this))
 {
-	setWindowTitle(QStringLiteral("Apps de YouTube y Facebook"));
+	setWindowTitle(i18n("Apps de YouTube y Facebook"));
 	setObjectName(QStringLiteral("multistream-apps"));
 
 	const std::optional<GoogleApp> google = apps::customGoogle();
@@ -90,7 +91,7 @@ AppsDialog::AppsDialog(QWidget *parent)
 	googleSecret_ = secretField(googleSecretStored_, this);
 	metaSecret_ = secretField(metaSecretStored_, this);
 
-	auto *intro = new QLabel(QStringLiteral("Multistream se conecta con sus propias apps de Google y Meta. Si preferís usar las tuyas, "
+	auto *intro = new QLabel(i18n("Multistream se conecta con sus propias apps de Google y Meta. Si preferís usar las tuyas, "
 						"por ejemplo mientras Google o Meta revisan las de Multistream, cargalas acá. "
 						"<a href=\"%1\">Cómo crear tus apps paso a paso</a>.")
 					 .arg(apps::kGuideUrl),
@@ -104,27 +105,27 @@ AppsDialog::AppsDialog(QWidget *parent)
 		googleClientId_->setText(google->clientId);
 	auto *googleForm = new QFormLayout();
 	googleForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-	googleForm->addRow(QStringLiteral("ID de cliente"), googleClientId_);
-	googleForm->addRow(QStringLiteral("Secreto del cliente"), googleSecret_);
+	googleForm->addRow(i18n("ID de cliente"), googleClientId_);
+	googleForm->addRow(i18n("Secreto del cliente"), googleSecret_);
 	googleDetails_ = details(googleForm,
-				 hint(QStringLiteral("Cliente OAuth de tipo «App de escritorio» con la API de YouTube Data v3 habilitada. "
+				 hint(i18n("Cliente OAuth de tipo «App de escritorio» con la API de YouTube Data v3 habilitada. "
 						     "Al cambiar de app hay que volver a conectar YouTube."),
 				      this),
 				 this);
 	auto *googleBox = section(QStringLiteral("YouTube (Google)"), googleBuiltIn_, googleOwn_, googleDetails_, this);
 
-	metaAppId_->setPlaceholderText(QStringLiteral("Número de la app"));
-	metaConfigId_->setPlaceholderText(QStringLiteral("Opcional: solo si usás Facebook Login for Business"));
+	metaAppId_->setPlaceholderText(i18n("Número de la app"));
+	metaConfigId_->setPlaceholderText(i18n("Opcional: solo si usás Facebook Login for Business"));
 	if (meta) {
 		metaAppId_->setText(meta->appId);
 		metaConfigId_->setText(meta->configId);
 	}
 	auto *redirect = new QLineEdit(apps::kMetaRedirectUri, this);
 	redirect->setReadOnly(true);
-	auto *copy = new QPushButton(QStringLiteral("Copiar"), this);
+	auto *copy = new QPushButton(i18n("Copiar"), this);
 	connect(copy, &QPushButton::clicked, this, [copy] {
 		QApplication::clipboard()->setText(apps::kMetaRedirectUri);
-		copy->setText(QStringLiteral("Copiado"));
+		copy->setText(i18n("Copiado"));
 	});
 	auto *redirectRow = new QHBoxLayout();
 	redirectRow->addWidget(redirect, 1);
@@ -132,11 +133,11 @@ AppsDialog::AppsDialog(QWidget *parent)
 	auto *metaForm = new QFormLayout();
 	metaForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
 	metaForm->addRow(QStringLiteral("App ID"), metaAppId_);
-	metaForm->addRow(QStringLiteral("Clave secreta"), metaSecret_);
-	metaForm->addRow(QStringLiteral("ID de configuración"), metaConfigId_);
-	metaForm->addRow(QStringLiteral("URI de redirección"), redirectRow);
+	metaForm->addRow(i18n("Clave secreta"), metaSecret_);
+	metaForm->addRow(i18n("ID de configuración"), metaConfigId_);
+	metaForm->addRow(i18n("URI de redirección"), redirectRow);
 	metaDetails_ = details(metaForm,
-			       hint(QStringLiteral("Pegá la URI de redirección en «Inicio de sesión con Facebook para empresas → Configurar», en «URI de redireccionamiento de OAuth válidos». "
+			       hint(i18n("Pegá la URI de redirección en «Inicio de sesión con Facebook para empresas → Configurar», en «URI de redireccionamiento de OAuth válidos». "
 						   "Con tu propia app, Multistream habla directo con Facebook y la clave secreta queda solo en este equipo. "
 						   "Al cambiar de app hay que volver a conectar Facebook."),
 				    this),
@@ -144,9 +145,9 @@ AppsDialog::AppsDialog(QWidget *parent)
 	auto *metaBox = section(QStringLiteral("Facebook (Meta)"), metaBuiltIn_, metaOwn_, metaDetails_, this);
 
 	if (!apps::hasBuiltInGoogle())
-		googleBuiltIn_->setText(QStringLiteral("App de Multistream (no incluida en esta versión)"));
+		googleBuiltIn_->setText(i18n("App de Multistream (no incluida en esta versión)"));
 	if (!apps::hasBuiltInMeta())
-		metaBuiltIn_->setText(QStringLiteral("App de Multistream (no incluida en esta versión)"));
+		metaBuiltIn_->setText(i18n("App de Multistream (no incluida en esta versión)"));
 	googleBuiltIn_->setEnabled(apps::hasBuiltInGoogle());
 	metaBuiltIn_->setEnabled(apps::hasBuiltInMeta());
 	(google || !apps::hasBuiltInGoogle() ? googleOwn_ : googleBuiltIn_)->setChecked(true);
@@ -156,8 +157,8 @@ AppsDialog::AppsDialog(QWidget *parent)
 	status_->setVisible(false);
 
 	auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
-	buttons->button(QDialogButtonBox::Save)->setText(QStringLiteral("Guardar"));
-	buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("Cancelar"));
+	buttons->button(QDialogButtonBox::Save)->setText(i18n("Guardar"));
+	buttons->button(QDialogButtonBox::Cancel)->setText(i18n("Cancelar"));
 
 	googleBox->setMinimumWidth(kContentWidth);
 	metaBox->setMinimumWidth(kContentWidth);
@@ -197,11 +198,11 @@ bool AppsDialog::saveGoogle(QString *problem)
 	const QString clientId = googleClientId_->text().trimmed();
 	const QString typed = googleSecret_->text().trimmed();
 	if (!clientId.endsWith(QStringLiteral(".apps.googleusercontent.com"))) {
-		*problem = QStringLiteral("El ID de cliente de Google termina en «.apps.googleusercontent.com».");
+		*problem = i18n("El ID de cliente de Google termina en «.apps.googleusercontent.com».");
 		return false;
 	}
 	if (typed.isEmpty() && !googleSecretStored_) {
-		*problem = QStringLiteral("Falta el secreto del cliente de Google.");
+		*problem = i18n("Falta el secreto del cliente de Google.");
 		return false;
 	}
 	const GoogleApp app{clientId, typed.isEmpty() ? before->clientSecret : typed};
@@ -223,15 +224,15 @@ bool AppsDialog::saveMeta(QString *problem)
 	const QString typed = metaSecret_->text().trimmed();
 	const QString configId = metaConfigId_->text().trimmed();
 	if (!digits.match(appId).hasMatch()) {
-		*problem = QStringLiteral("El App ID de Meta es un número; lo ves arriba a la izquierda en el panel de tu app.");
+		*problem = i18n("El App ID de Meta es un número; lo ves arriba a la izquierda en el panel de tu app.");
 		return false;
 	}
 	if (typed.isEmpty() && !metaSecretStored_) {
-		*problem = QStringLiteral("Falta la clave secreta de la app de Meta (Configuración de la app → Básica).");
+		*problem = i18n("Falta la clave secreta de la app de Meta (Configuración de la app → Básica).");
 		return false;
 	}
 	if (!configId.isEmpty() && !digits.match(configId).hasMatch()) {
-		*problem = QStringLiteral("El ID de configuración de Facebook Login for Business es un número.");
+		*problem = i18n("El ID de configuración de Facebook Login for Business es un número.");
 		return false;
 	}
 	const MetaApp app{appId, typed.isEmpty() ? before->appSecret : typed, configId};

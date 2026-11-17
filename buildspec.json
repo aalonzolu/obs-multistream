@@ -38,7 +38,7 @@
     },
     "name": "obs-multistream",
     "displayName": "Multistream",
-    "version": "0.2.1",
+    "version": "0.3.0",
     "author": "obs-multistream",
     "website": "https://github.com/aalonzolu/obs-multistream",
     "email": ""

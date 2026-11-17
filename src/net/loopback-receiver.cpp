@@ -1,5 +1,7 @@
 #include "net/loopback-receiver.hpp"
 
+#include "core/i18n.hpp"
+
 #include <QHostAddress>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -15,9 +17,9 @@ constexpr int kGraceAfterSuccessMs = 15000;
 
 QString page(const QString &message)
 {
-	return QStringLiteral("<!doctype html><html lang=\"es\"><meta charset=\"utf-8\"><title>Multistream</title>"
+	return QStringLiteral("<!doctype html><html lang=\"%2\"><meta charset=\"utf-8\"><title>Multistream</title>"
 			      "<body style=\"font-family:system-ui;padding:3rem;max-width:32rem\"><h1>Multistream</h1><p>%1</p>")
-		.arg(message.toHtmlEscaped());
+		.arg(message.toHtmlEscaped(), englishInterface() ? QStringLiteral("en") : QStringLiteral("es"));
 }
 
 } // namespace
@@ -100,24 +102,24 @@ void LoopbackReceiver::handle(QTcpSocket *socket)
 	const bool valid = requestLine.value(0) == "GET" && expectedHosts.contains(host) && target.path() == expectedPath_;
 
 	if (valid && succeeded_) {
-		reply(socket, 200, QStringLiteral("Listo. Podés cerrar esta pestaña y volver a OBS."));
+		reply(socket, 200, i18n("Listo. Podés cerrar esta pestaña y volver a OBS."));
 		return;
 	}
 	if (done_ || !valid) {
-		reply(socket, 404, QStringLiteral("No encontrado."));
+		reply(socket, 404, i18n("No encontrado."));
 		return;
 	}
 
 	const QUrlQuery query(target);
 	if (query.isEmpty()) {
-		reply(socket, 404, QStringLiteral("No encontrado."));
+		reply(socket, 404, i18n("No encontrado."));
 		return;
 	}
 
 	done_ = true;
 	succeeded_ = true;
 	ttl_.stop();
-	reply(socket, 200, QStringLiteral("Listo. Podés cerrar esta pestaña y volver a OBS."));
+	reply(socket, 200, i18n("Listo. Podés cerrar esta pestaña y volver a OBS."));
 	QTimer::singleShot(kGraceAfterSuccessMs, this, [this] {
 		server_->close();
 		deleteLater();

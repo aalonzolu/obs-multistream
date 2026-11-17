@@ -1,5 +1,7 @@
 #include "providers/local-test.hpp"
 
+#include "core/i18n.hpp"
+
 #include <QTimer>
 
 namespace multistream {
@@ -15,7 +17,7 @@ Account LocalTestProvider::account() const
 {
 	if (!identity_.isEmpty())
 		return {id_, identity_, id_, identity_};
-	return {id_, name_ + QStringLiteral(" (prueba local)"), id_, QStringLiteral("rtmp://127.0.0.1/live/") + id_};
+	return {id_, name_ + i18n(" (prueba local)"), id_, QStringLiteral("rtmp://127.0.0.1/live/") + id_};
 }
 
 void LocalTestProvider::later(std::function<void()> work) const
@@ -28,12 +30,12 @@ Error LocalTestProvider::failureFor(const QString &step) const
 	const QString mode = behavior_.value(step).toString(QStringLiteral("ok"));
 	if (mode == QStringLiteral("auth"))
 		return Error::make(ErrorKind::AuthRequired, QStringLiteral("AUTH_REQUIRED"),
-				   QStringLiteral("Necesitamos que vuelvas a autorizar %1.").arg(name_));
+				   i18n("Necesitamos que vuelvas a autorizar %1.").arg(name_));
 	if (mode == QStringLiteral("reject"))
-		return Error::make(ErrorKind::Rejected, QStringLiteral("REJECTED"), QStringLiteral("%1 rechazó la petición.").arg(name_));
+		return Error::make(ErrorKind::Rejected, QStringLiteral("REJECTED"), i18n("%1 rechazó la petición.").arg(name_));
 	if (mode == QStringLiteral("uncertain"))
 		return Error::make(ErrorKind::Uncertain, QStringLiteral("TIMEOUT"),
-				   QStringLiteral("%1 no confirmó si creó la emisión.").arg(name_));
+				   i18n("%1 no confirmó si creó la emisión.").arg(name_));
 	return {};
 }
 

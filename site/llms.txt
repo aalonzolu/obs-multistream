@@ -1,6 +1,6 @@
 # Multistream para OBS (Multistream for OBS)
 
-> Plugin gratis y de código abierto (GPL-2.0) para OBS Studio 33 o más reciente que transmite al mismo tiempo en Facebook, YouTube, TikTok, cualquier servidor RTMP (Kick, Vimeo, propio) y una radio Icecast, AzuraCast o Liquidsoap. Crea y cierra cada directo por la API de cada plataforma, así que no hay que copiar claves de transmisión. Funciona en Windows 10/11 (con instalador), macOS 13+ y Linux. La interfaz está en español.
+> Plugin gratis y de código abierto (GPL-2.0) para OBS Studio 33 o más reciente que transmite al mismo tiempo en Facebook, YouTube, TikTok, cualquier servidor RTMP (Kick, Vimeo, propio) y una radio Icecast, AzuraCast o Liquidsoap. Crea y cierra cada directo por la API de cada plataforma, así que no hay que copiar claves de transmisión. Funciona en Windows 10/11 (con instalador), macOS 13+ y Linux. La interfaz está en español e inglés, según el idioma de OBS.
 >
 > Free, open-source (GPL-2.0) OBS Studio plugin that streams to YouTube, Facebook, TikTok, any RTMP server and Icecast radio at the same time, creating and ending each broadcast through the platform APIs, with no stream keys to copy. It is a self-hosted alternative to Restream: video goes straight from the computer to each platform, so upload bandwidth must cover one stream per destination.
 

@@ -1,5 +1,7 @@
 #include "media/output-runtime.hpp"
 
+#include "core/i18n.hpp"
+
 #include <QMetaObject>
 #include <QThreadPool>
 #include <QPointer>
@@ -14,19 +16,19 @@ QString stopCodeMessage(int code)
 	case OBS_OUTPUT_SUCCESS:
 		return {};
 	case OBS_OUTPUT_BAD_PATH:
-		return QStringLiteral("La dirección de ingreso no es válida.");
+		return i18n("La dirección de ingreso no es válida.");
 	case OBS_OUTPUT_CONNECT_FAILED:
-		return QStringLiteral("No se pudo conectar con el servidor de ingreso.");
+		return i18n("No se pudo conectar con el servidor de ingreso.");
 	case OBS_OUTPUT_INVALID_STREAM:
-		return QStringLiteral("El servidor rechazó la clave de transmisión.");
+		return i18n("El servidor rechazó la clave de transmisión.");
 	case OBS_OUTPUT_DISCONNECTED:
-		return QStringLiteral("Se perdió la conexión con el servidor de ingreso.");
+		return i18n("Se perdió la conexión con el servidor de ingreso.");
 	case OBS_OUTPUT_UNSUPPORTED:
-		return QStringLiteral("El formato no es compatible con el destino.");
+		return i18n("El formato no es compatible con el destino.");
 	case OBS_OUTPUT_ENCODE_ERROR:
-		return QStringLiteral("Falló el codificador.");
+		return i18n("Falló el codificador.");
 	default:
-		return QStringLiteral("La salida terminó con un error (%1).").arg(code);
+		return i18n("La salida terminó con un error (%1).").arg(code);
 	}
 }
 
@@ -101,13 +103,13 @@ OutputRuntime::~OutputRuntime()
 bool OutputRuntime::start(QString *error)
 {
 	if (!output_ || !service_) {
-		*error = QStringLiteral("OBS no pudo crear la salida RTMP.");
+		*error = i18n("OBS no pudo crear la salida RTMP.");
 		return false;
 	}
 	apply(Transport::Connecting, 0, {});
 	if (!obs_output_start(output_)) {
 		const char *last = obs_output_get_last_error(output_);
-		*error = last && *last ? QString::fromUtf8(last) : QStringLiteral("OBS no pudo iniciar la salida.");
+		*error = last && *last ? QString::fromUtf8(last) : i18n("OBS no pudo iniciar la salida.");
 		apply(Transport::Failed, OBS_OUTPUT_ERROR, *error);
 		return false;
 	}

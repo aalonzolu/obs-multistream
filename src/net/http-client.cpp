@@ -1,5 +1,7 @@
 #include "net/http-client.hpp"
 
+#include "core/i18n.hpp"
+
 #include <curl/curl.h>
 
 #include <QJsonObject>
@@ -168,9 +170,9 @@ QString HttpResponse::describe() const
 {
 	switch (delivery) {
 	case Delivery::NotSent:
-		return QStringLiteral("sin conexión (%1)").arg(networkError);
+		return i18n("sin conexión (%1)").arg(networkError);
 	case Delivery::Uncertain:
-		return QStringLiteral("sin respuesta (%1)").arg(networkError);
+		return i18n("sin respuesta (%1)").arg(networkError);
 	case Delivery::Answered:
 		break;
 	}
@@ -209,18 +211,18 @@ Error errorFromResponse(const HttpResponse &response, const QString &provider, b
 {
 	if (response.delivery == Delivery::NotSent)
 		return Error::make(ErrorKind::Network, QStringLiteral("NETWORK"),
-				   QStringLiteral("No se pudo conectar con %1.").arg(provider));
+				   i18n("No se pudo conectar con %1.").arg(provider));
 	if (response.delivery == Delivery::Uncertain)
 		return Error::make(createsRemoteResource ? ErrorKind::Uncertain : ErrorKind::Network, QStringLiteral("TIMEOUT"),
-				   QStringLiteral("%1 no respondió a tiempo.").arg(provider));
+				   i18n("%1 no respondió a tiempo.").arg(provider));
 	if (response.status == 401 || response.status == 403)
 		return Error::make(ErrorKind::AuthRequired, QStringLiteral("AUTH_REQUIRED"),
-				   QStringLiteral("Necesitamos que vuelvas a autorizar %1.").arg(provider));
+				   i18n("Necesitamos que vuelvas a autorizar %1.").arg(provider));
 	if (response.status >= 500 && createsRemoteResource)
 		return Error::make(ErrorKind::Uncertain, QStringLiteral("UPSTREAM"),
-				   QStringLiteral("%1 falló (%2) y no confirmó si creó la emisión.").arg(provider, response.describe()));
+				   i18n("%1 falló (%2) y no confirmó si creó la emisión.").arg(provider, response.describe()));
 	return Error::make(ErrorKind::Rejected, QStringLiteral("REJECTED"),
-			   QStringLiteral("%1 rechazó la petición: %2").arg(provider, response.describe()));
+			   i18n("%1 rechazó la petición: %2").arg(provider, response.describe()));
 }
 
 } // namespace multistream

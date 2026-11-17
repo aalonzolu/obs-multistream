@@ -12,6 +12,7 @@ Plugin gratis y de código abierto para OBS Studio que transmite en Facebook, Yo
 - **Programar con anticipación** en YouTube (y en Facebook si Meta aprobó la app) para compartir el enlace antes del evento.
 - **Destinos RTMP propios** (Kick, Vimeo, un servidor propio), **grabación local** a la vez y **avisos** con sonido cuando un destino se cae o el audio queda en silencio.
 - Todo vive en la barra de estado de OBS; no agrega paneles.
+- La interfaz está en español e inglés y sigue el idioma de OBS.
 
 **Estado:** probado en macOS con las tres plataformas y una radio AzuraCast. Windows tiene instalador desde la 0.2.0 y está pendiente de probar en un equipo real. Requiere OBS Studio 33 o más reciente.
 

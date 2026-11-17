@@ -1,5 +1,6 @@
 #include "providers/youtube.hpp"
 
+#include "core/i18n.hpp"
 #include "net/http-client.hpp"
 #include "net/loopback-receiver.hpp"
 #include "providers/app-credentials.hpp"
@@ -75,7 +76,7 @@ bool YouTubeProvider::configured(QString *reason) const
 {
 	if (!clientId().isEmpty())
 		return true;
-	*reason = QStringLiteral("Falta la app de Google. Configurala en Multistream → Apps de YouTube y Facebook.");
+	*reason = i18n("Falta la app de Google. Configurala en Multistream → Apps de YouTube y Facebook.");
 	return false;
 }
 
@@ -126,12 +127,12 @@ void YouTubeProvider::connectAccount(Callback<Account> done)
 		[this, receiver, state, verifier = pkce.verifier, redirectUri, done](const QUrlQuery &params, const QString &) {
 			if (params.queryItemValue(QStringLiteral("state")) != state) {
 				done(Result<Account>::failure(Error::make(ErrorKind::Cancelled, QStringLiteral("STATE"),
-									  QStringLiteral("La respuesta de Google no corresponde a este intento."))));
+									  i18n("La respuesta de Google no corresponde a este intento."))));
 				return;
 			}
 			if (!params.hasQueryItem(QStringLiteral("code"))) {
 				done(Result<Account>::failure(Error::make(ErrorKind::Cancelled, QStringLiteral("DENIED"),
-									  QStringLiteral("No se concedió el permiso en Google."))));
+									  i18n("No se concedió el permiso en Google."))));
 				return;
 			}
 			exchangeCode(params.queryItemValue(QStringLiteral("code")), verifier, redirectUri, done);
@@ -139,14 +140,14 @@ void YouTubeProvider::connectAccount(Callback<Account> done)
 	connect(receiver, &LoopbackReceiver::expired, this, [receiver, done] {
 		receiver->deleteLater();
 		done(Result<Account>::failure(Error::make(ErrorKind::Cancelled, QStringLiteral("LOGIN_TIMEOUT"),
-							  QStringLiteral("Se venció el tiempo para autorizar en el navegador."))));
+							  i18n("Se venció el tiempo para autorizar en el navegador."))));
 	});
 
 	if (!openInBrowser(url.toString(QUrl::FullyEncoded))) {
 		receiver->cancel();
 		receiver->deleteLater();
 		done(Result<Account>::failure(Error::make(ErrorKind::Internal, QStringLiteral("BROWSER"),
-							  QStringLiteral("No se pudo abrir el navegador."))));
+							  i18n("No se pudo abrir el navegador."))));
 	}
 }
 
@@ -179,7 +180,7 @@ void YouTubeProvider::exchangeCode(const QString &code, const QString &verifier,
 		const QStringList scopes = root.value(QStringLiteral("scope")).toString().split(QLatin1Char(' '));
 		if (!scopes.contains(kScope) && !scopes.contains(QStringLiteral("https://www.googleapis.com/auth/youtube"))) {
 			done(Result<Account>::failure(Error::make(ErrorKind::Rejected, QStringLiteral("SCOPE"),
-								  QStringLiteral("Google no concedió el permiso para administrar transmisiones."))));
+								  i18n("Google no concedió el permiso para administrar transmisiones."))));
 			return;
 		}
 		accessToken_ = root.value(QStringLiteral("access_token")).toString();
@@ -189,7 +190,7 @@ void YouTubeProvider::exchangeCode(const QString &code, const QString &verifier,
 			QString error;
 			if (!secrets::write(kRefreshSecret, refresh.toUtf8(), &error)) {
 				done(Result<Account>::failure(Error::make(ErrorKind::Internal, QStringLiteral("VAULT"),
-									  QStringLiteral("No se pudo guardar la cuenta: %1").arg(error))));
+									  i18n("No se pudo guardar la cuenta: %1").arg(error))));
 				return;
 			}
 		}
@@ -208,7 +209,7 @@ void YouTubeProvider::fetchChannel(Callback<Account> done)
 		    const QJsonArray items = result.value->value(QStringLiteral("items")).toArray();
 		    if (items.isEmpty()) {
 			    done(Result<Account>::failure(Error::make(ErrorKind::Rejected, QStringLiteral("NO_CHANNEL"),
-								      QStringLiteral("Esta cuenta de Google no tiene un canal de YouTube."))));
+								      i18n("Esta cuenta de Google no tiene un canal de YouTube."))));
 			    return;
 		    }
 		    const QJsonObject channel = items.first().toObject();
@@ -232,7 +233,7 @@ void YouTubeProvider::withAccessToken(Callback<QString> done)
 	const auto refresh = secrets::read(kRefreshSecret);
 	if (!refresh) {
 		done(Result<QString>::failure(Error::make(ErrorKind::AuthRequired, QStringLiteral("DISCONNECTED"),
-							  QStringLiteral("Conectá tu cuenta para usar este destino."))));
+							  i18n("Conectá tu cuenta para usar este destino."))));
 		return;
 	}
 	HttpRequest request;
@@ -246,7 +247,7 @@ void YouTubeProvider::withAccessToken(Callback<QString> done)
 		const QJsonObject root = response.json().object();
 		if (response.status == 400 && root.value(QStringLiteral("error")).toString() == QStringLiteral("invalid_grant")) {
 			done(Result<QString>::failure(Error::make(ErrorKind::AuthRequired, QStringLiteral("REVOKED"),
-								  QStringLiteral("Necesitamos que vuelvas a autorizar YouTube."))));
+								  i18n("Necesitamos que vuelvas a autorizar YouTube."))));
 			return;
 		}
 		if (!response.success()) {
@@ -263,14 +264,14 @@ Error YouTubeProvider::describe(const HttpResponse &response, bool createsRemote
 {
 	const QString reason = firstReason(response.json().object());
 	if (reason == QStringLiteral("liveStreamingNotEnabled"))
-		return Error::make(ErrorKind::Rejected, reason, QStringLiteral("El canal no tiene habilitada la transmisión en vivo."));
+		return Error::make(ErrorKind::Rejected, reason, i18n("El canal no tiene habilitada la transmisión en vivo."));
 	if (reason == QStringLiteral("quotaExceeded"))
-		return Error::make(ErrorKind::Rejected, reason, QStringLiteral("Se agotó la cuota diaria de la API de YouTube."));
+		return Error::make(ErrorKind::Rejected, reason, i18n("Se agotó la cuota diaria de la API de YouTube."));
 	if (reason == QStringLiteral("insufficientPermissions") || reason == QStringLiteral("forbidden"))
-		return Error::make(ErrorKind::AuthRequired, reason, QStringLiteral("Necesitamos que vuelvas a autorizar YouTube."));
+		return Error::make(ErrorKind::AuthRequired, reason, i18n("Necesitamos que vuelvas a autorizar YouTube."));
 	Error error = errorFromResponse(response, kName, createsRemoteResource);
 	if (!reason.isEmpty() && error.kind == ErrorKind::AuthRequired && response.status == 403)
-		error = Error::make(ErrorKind::Rejected, reason, QStringLiteral("YouTube rechazó la petición (%1).").arg(reason));
+		error = Error::make(ErrorKind::Rejected, reason, i18n("YouTube rechazó la petición (%1).").arg(reason));
 	return error;
 }
 
@@ -310,7 +311,7 @@ void YouTubeProvider::preflight(Callback<Account> done)
 	const QString kids = Settings::shared().provider(id()).value(QStringLiteral("made_for_kids")).toString();
 	if (kids.isEmpty()) {
 		done(Result<Account>::failure(Error::make(ErrorKind::Rejected, QStringLiteral("MADE_FOR_KIDS"),
-							  QStringLiteral("Elegí en Opciones si el contenido es para niños; YouTube lo exige."))));
+							  i18n("Elegí en Opciones si el contenido es para niños; YouTube lo exige."))));
 		return;
 	}
 	fetchChannel([this, done](Result<Account> channel) {
@@ -342,7 +343,7 @@ void YouTubeProvider::prepare(const StartIntent &intent, Callback<PreparedSessio
 void YouTubeProvider::schedule(const ScheduleRequest &request, Callback<ScheduledBroadcast> done)
 {
 	createSession(request.title, request.description, request.startsAt.toUTC(),
-		      QStringLiteral("programada %1").arg(request.startsAt.toString(QStringLiteral("yyyyMMdd-HHmm"))),
+		      i18n("programada %1").arg(request.startsAt.toString(QStringLiteral("yyyyMMdd-HHmm"))),
 		      [done](Result<PreparedSession> session) {
 			      if (!session.ok()) {
 				      done(Result<ScheduledBroadcast>::failure(session.error));
@@ -404,7 +405,7 @@ void YouTubeProvider::resumeScheduled(const StartIntent &intent, Callback<Prepar
 					session.scheduled = true;
 					if (session.server.isEmpty() || session.key.isEmpty()) {
 						done(Result<PreparedSession>::failure(Error::make(ErrorKind::Rejected, QStringLiteral("NO_INGEST"),
-												  QStringLiteral("YouTube no devolvió la dirección de ingreso del directo programado."))));
+												  i18n("YouTube no devolvió la dirección de ingreso del directo programado."))));
 						return;
 					}
 					done(Result<PreparedSession>::success(session));

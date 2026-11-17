@@ -1,5 +1,6 @@
 #include "ui/radio-row.hpp"
 
+#include "core/i18n.hpp"
 #include "radio/radio-station.hpp"
 #include "ui/brand-mark.hpp"
 #include "ui/presentation.hpp"
@@ -42,12 +43,12 @@ RadioRow::RadioRow(radio::Station *station, QWidget *parent)
 	more_->setProperty("class", "icon-dots-vert");
 	more_->setAutoRaise(true);
 	more_->setFixedSize(26, 26);
-	more_->setAccessibleName(QStringLiteral("Más acciones de la radio"));
+	more_->setAccessibleName(i18n("Más acciones de la radio"));
 	more_->setStyleSheet(QStringLiteral("QToolButton::menu-indicator { image: none; width: 0; }"));
 	more_->setPopupMode(QToolButton::InstantPopup);
 	auto *menu = new QMenu(more_);
-	menu->addAction(QStringLiteral("Configurar radio…"), this, &RadioRow::configureRequested);
-	menu->addAction(QStringLiteral("Copiar detalles técnicos"), this,
+	menu->addAction(i18n("Configurar radio…"), this, &RadioRow::configureRequested);
+	menu->addAction(i18n("Copiar detalles técnicos"), this,
 			[this] { QApplication::clipboard()->setText(radioDetails(*station_)); });
 	more_->setMenu(menu);
 
@@ -71,7 +72,7 @@ void RadioRow::render()
 {
 	const radio::Config config = station_->config();
 	identity_->setFullText(config.configured() ? QStringLiteral("%1 · %2").arg(config.host, config.summary())
-						   : QStringLiteral("Sin servidor configurado"));
+						   : i18n("Sin servidor configurado"));
 	const Presentation presentation = presentationFor(*station_);
 	pill_->setStatus(presentation.tone, presentation.label);
 	pill_->setBreathing(station_->state() == radio::RadioState::OnAir);
@@ -88,11 +89,11 @@ void RadioRow::render()
 	case radio::RadioState::OnAir: {
 		actionKind_ = Action::Stop;
 		QStringList parts;
-		parts << QStringLiteral("Al aire desde las %1").arg(station_->onAirSince().toString(QStringLiteral("HH:mm")));
-		parts << QStringLiteral("%1 MB enviados").arg(static_cast<double>(station_->bytesSent()) / 1e6, 0, 'f', 1);
+		parts << i18n("Al aire desde las %1").arg(station_->onAirSince().toString(QStringLiteral("HH:mm")));
+		parts << i18n("%1 MB enviados").arg(static_cast<double>(station_->bytesSent()) / 1e6, 0, 'f', 1);
 		if (station_->reconnects() > 0)
-			parts << (station_->reconnects() == 1 ? QStringLiteral("1 reconexión")
-							      : QStringLiteral("%1 reconexiones").arg(station_->reconnects()));
+			parts << (station_->reconnects() == 1 ? i18n("1 reconexión")
+							      : i18n("%1 reconexiones").arg(station_->reconnects()));
 		detail = parts.join(QStringLiteral(" · "));
 		break;
 	}
@@ -110,13 +111,13 @@ void RadioRow::render()
 	details_->setForegroundRole(presentation.tone == Tone::Attention ? QPalette::WindowText : QPalette::PlaceholderText);
 
 	static const QMap<Action, QString> labels = {
-		{Action::Configure, QStringLiteral("Configurar")},
-		{Action::Start, QStringLiteral("Iniciar")},
-		{Action::Stop, QStringLiteral("Detener")},
-		{Action::Retry, QStringLiteral("Reintentar")},
+		{Action::Configure, i18n("Configurar")},
+		{Action::Start, i18n("Iniciar")},
+		{Action::Stop, i18n("Detener")},
+		{Action::Retry, i18n("Reintentar")},
 	};
 	action_->setText(labels.value(actionKind_));
-	action_->setAccessibleName(QStringLiteral("%1 la radio").arg(labels.value(actionKind_)));
+	action_->setAccessibleName(i18n("%1 la radio").arg(labels.value(actionKind_)));
 }
 
 void RadioRow::onAction()

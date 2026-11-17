@@ -141,18 +141,18 @@ async function completeCallback(url: URL, env: Env): Promise<Response> {
   const state = url.searchParams.get("state") ?? "";
   const row = await env.DB.prepare("SELECT * FROM transactions WHERE state = ?").bind(state).first<TransactionRow>();
   if (!row || row.status !== "pending" || row.expires_at < Date.now())
-    return html(resultPage("La autorización venció o ya se usó. Volvé a OBS e intentá de nuevo."), 400);
+    return html(resultPage("This authorization expired or was already used. Go back to OBS and try again.", "La autorización venció o ya se usó. Volvé a OBS e intentá de nuevo."), 400);
 
   const code = url.searchParams.get("code");
   if (!code) {
     await env.DB.prepare("UPDATE transactions SET status = 'denied' WHERE id = ?").bind(row.id).run();
-    return html(resultPage("No se concedió el permiso. Podés cerrar esta pestaña y volver a OBS."));
+    return html(resultPage("Permission wasn't granted. You can close this tab and go back to OBS.", "No se concedió el permiso. Podés cerrar esta pestaña y volver a OBS."));
   }
 
   const graph = new Graph(env);
   const exchanged = await graph.exchangeCode(code, callbackUrl(env));
   const shortLived = exchanged.data.access_token;
-  if (!shortLived) return html(resultPage("Facebook no completó la autorización. Volvé a OBS e intentá de nuevo."), 502);
+  if (!shortLived) return html(resultPage("Facebook didn't complete the authorization. Go back to OBS and try again.", "Facebook no completó la autorización. Volvé a OBS e intentá de nuevo."), 502);
   const longLived = (await graph.longLived(shortLived)).data.access_token ?? shortLived;
 
   const me = await graph.call<{ id: string; name: string }>("GET", "/me", longLived, { fields: "id,name" });
@@ -162,7 +162,7 @@ async function completeCallback(url: URL, env: Env): Promise<Response> {
     longLived,
     { fields: "id,name,access_token,tasks", limit: "100" },
   );
-  if (!me.ok || !accounts.ok) return html(resultPage("No pudimos leer tus páginas. Volvé a OBS e intentá de nuevo."), 502);
+  if (!me.ok || !accounts.ok) return html(resultPage("Couldn't read your Pages. Go back to OBS and try again.", "No pudimos leer tus páginas. Volvé a OBS e intentá de nuevo."), 502);
 
   const listed = (accounts.data.data ?? []).filter(
     (page) => page.access_token && (!page.tasks || page.tasks.some((task) => CONTENT_TASKS.has(task))),
@@ -178,7 +178,7 @@ async function completeCallback(url: URL, env: Env): Promise<Response> {
   await env.DB.prepare("UPDATE transactions SET status = 'ready', sealed_result = ? WHERE id = ?")
     .bind(await seal(env.CACHE_ENCRYPTION_KEY, result), row.id)
     .run();
-  return html(resultPage("Listo. Podés cerrar esta pestaña y volver a OBS."));
+  return html(resultPage("Done. You can close this tab and go back to OBS.", "Listo. Podés cerrar esta pestaña y volver a OBS."));
 }
 
 async function transactionStatus(id: string, request: Request, env: Env): Promise<Response> {

@@ -1,5 +1,7 @@
 #include "ui/radio-dialog.hpp"
 
+#include "core/i18n.hpp"
+
 #include <QCheckBox>
 #include <QComboBox>
 #include <QDialogButtonBox>
@@ -39,7 +41,7 @@ RadioDialog::RadioDialog(QWidget *parent)
 	  mount_(new QLineEdit(this)),
 	  user_(new QLineEdit(this)),
 	  password_(new QLineEdit(this)),
-	  tls_(new QCheckBox(QStringLiteral("Conexión segura (TLS)"), this)),
+	  tls_(new QCheckBox(i18n("Conexión segura (TLS)"), this)),
 	  format_(new QComboBox(this)),
 	  bitrate_(new QComboBox(this)),
 	  sampleRate_(new QComboBox(this)),
@@ -50,7 +52,7 @@ RadioDialog::RadioDialog(QWidget *parent)
 	  description_(new QLineEdit(this)),
 	  genre_(new QLineEdit(this)),
 	  website_(new QLineEdit(this)),
-	  listed_(new QCheckBox(QStringLiteral("Listar en directorios públicos"), this)),
+	  listed_(new QCheckBox(i18n("Listar en directorios públicos"), this)),
 	  status_(muted(this))
 {
 	setWindowTitle(QStringLiteral("Radio"));
@@ -66,18 +68,18 @@ RadioDialog::RadioDialog(QWidget *parent)
 	password_->setEchoMode(QLineEdit::Password);
 	auto *serverRow = new QHBoxLayout();
 	serverRow->addWidget(host_, 1);
-	serverRow->addWidget(new QLabel(QStringLiteral("Puerto"), this));
+	serverRow->addWidget(new QLabel(i18n("Puerto"), this));
 	serverRow->addWidget(port_);
 
 	for (const radio::Format &format : radio::formats())
 		format_->addItem(format.label, format.id);
 	sampleRate_->addItem(QStringLiteral("48 kHz"), 48000);
-	sampleRate_->addItem(QStringLiteral("44,1 kHz"), 44100);
-	channels_->addItem(QStringLiteral("Estéreo"), 2);
+	sampleRate_->addItem(i18n("44,1 kHz"), 44100);
+	channels_->addItem(i18n("Estéreo"), 2);
 	channels_->addItem(QStringLiteral("Mono"), 1);
 	for (int track = 1; track <= 6; ++track)
-		track_->addItem(QStringLiteral("Pista %1").arg(track), track);
-	track_->setToolTip(QStringLiteral("La pista de audio de OBS que se envía. Usá otra pista si querés una mezcla distinta para la radio."));
+		track_->addItem(i18n("Pista %1").arg(track), track);
+	track_->setToolTip(i18n("La pista de audio de OBS que se envía. Usá otra pista si querés una mezcla distinta para la radio."));
 	auto *qualityRow = new QHBoxLayout();
 	qualityRow->addWidget(format_, 1);
 	qualityRow->addWidget(bitrate_);
@@ -87,38 +89,38 @@ RadioDialog::RadioDialog(QWidget *parent)
 	audioRow->addWidget(track_);
 	audioRow->addStretch();
 
-	auto *server = new QGroupBox(QStringLiteral("Servidor Icecast"), this);
+	auto *server = new QGroupBox(i18n("Servidor Icecast"), this);
 	auto *serverForm = new QFormLayout(server);
 	serverForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-	serverForm->addRow(QStringLiteral("Servidor"), serverRow);
-	serverForm->addRow(QStringLiteral("Montaje"), mount_);
-	serverForm->addRow(QStringLiteral("Usuario"), user_);
-	serverForm->addRow(QStringLiteral("Contraseña"), password_);
+	serverForm->addRow(i18n("Servidor"), serverRow);
+	serverForm->addRow(i18n("Montaje"), mount_);
+	serverForm->addRow(i18n("Usuario"), user_);
+	serverForm->addRow(i18n("Contraseña"), password_);
 	serverForm->addRow(QString(), tls_);
 
 	auto *audio = new QGroupBox(QStringLiteral("Audio"), this);
 	auto *audioForm = new QFormLayout(audio);
 	audioForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-	audioForm->addRow(QStringLiteral("Formato"), qualityRow);
-	audioForm->addRow(QStringLiteral("Señal"), audioRow);
+	audioForm->addRow(i18n("Formato"), qualityRow);
+	audioForm->addRow(i18n("Señal"), audioRow);
 	audioForm->addRow(QString(), hint_);
 
-	auto *station = new QGroupBox(QStringLiteral("Estación"), this);
+	auto *station = new QGroupBox(i18n("Estación"), this);
 	auto *stationForm = new QFormLayout(station);
 	stationForm->setFieldGrowthPolicy(QFormLayout::AllNonFixedFieldsGrow);
-	stationForm->addRow(QStringLiteral("Nombre"), stationName_);
-	stationForm->addRow(QStringLiteral("Descripción"), description_);
-	stationForm->addRow(QStringLiteral("Género"), genre_);
-	stationForm->addRow(QStringLiteral("Sitio web"), website_);
+	stationForm->addRow(i18n("Nombre"), stationName_);
+	stationForm->addRow(i18n("Descripción"), description_);
+	stationForm->addRow(i18n("Género"), genre_);
+	stationForm->addRow(i18n("Sitio web"), website_);
 	stationForm->addRow(QString(), listed_);
 
 	auto *buttons = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
-	buttons->button(QDialogButtonBox::Save)->setText(QStringLiteral("Guardar"));
-	buttons->button(QDialogButtonBox::Cancel)->setText(QStringLiteral("Cancelar"));
-	auto *butt = buttons->addButton(QStringLiteral("Importar desde BUTT"), QDialogButtonBox::ResetRole);
+	buttons->button(QDialogButtonBox::Save)->setText(i18n("Guardar"));
+	buttons->button(QDialogButtonBox::Cancel)->setText(i18n("Cancelar"));
+	auto *butt = buttons->addButton(i18n("Importar desde BUTT"), QDialogButtonBox::ResetRole);
 	butt->setEnabled(QFileInfo::exists(radio::buttConfigPath()));
-	butt->setToolTip(butt->isEnabled() ? QStringLiteral("Copia servidor, contraseña, formato y datos de la estación de BUTT.")
-					   : QStringLiteral("No hay configuración de BUTT en este equipo."));
+	butt->setToolTip(butt->isEnabled() ? i18n("Copia servidor, contraseña, formato y datos de la estación de BUTT.")
+					   : i18n("No hay configuración de BUTT en este equipo."));
 
 	auto *root = new QVBoxLayout(this);
 	root->setContentsMargins(18, 16, 18, 14);
@@ -184,15 +186,15 @@ void RadioDialog::refreshHints()
 {
 	const QString id = format_->currentData().toString();
 	if (id == QStringLiteral("mp3"))
-		hint_->setText(QStringLiteral("Compatible con cualquier servidor y reproductor."));
+		hint_->setText(i18n("Compatible con cualquier servidor y reproductor."));
 	else if (id == QStringLiteral("aac"))
-		hint_->setText(QStringLiteral("Mejor calidad que MP3 con la misma velocidad. Lo aceptan Icecast, AzuraCast y TuneIn."));
+		hint_->setText(i18n("Mejor calidad que MP3 con la misma velocidad. Lo aceptan Icecast, AzuraCast y TuneIn."));
 	else if (id == QStringLiteral("opus"))
-		hint_->setText(QStringLiteral("La mejor calidad por kbps. Ideal si el servidor vuelve a codificar (AzuraCast)."));
+		hint_->setText(i18n("La mejor calidad por kbps. Ideal si el servidor vuelve a codificar (AzuraCast)."));
 	else if (id == QStringLiteral("vorbis"))
-		hint_->setText(QStringLiteral("Formato abierto en Ogg, buena calidad."));
+		hint_->setText(i18n("Formato abierto en Ogg, buena calidad."));
 	else
-		hint_->setText(QStringLiteral("Sin pérdida (unos 700–1000 kbps). Solo si la conexión y el servidor lo soportan."));
+		hint_->setText(i18n("Sin pérdida (unos 700–1000 kbps). Solo si la conexión y el servidor lo soportan."));
 }
 
 void RadioDialog::importButt()
@@ -206,7 +208,7 @@ void RadioDialog::importButt()
 	}
 	fill(imported->config);
 	password_->setText(imported->password);
-	status_->setText(QStringLiteral("Importado de BUTT («%1»). Revisá y guardá.").arg(imported->serverName));
+	status_->setText(i18n("Importado de BUTT («%1»). Revisá y guardá.").arg(imported->serverName));
 }
 
 radio::Config RadioDialog::collect() const
@@ -238,17 +240,17 @@ void RadioDialog::accept()
 	const radio::Config config = collect();
 	status_->setVisible(true);
 	if (!config.configured()) {
-		status_->setText(QStringLiteral("Falta el servidor."));
+		status_->setText(i18n("Falta el servidor."));
 		return;
 	}
 	if (password_->text().isEmpty() && !passwordStored_) {
-		status_->setText(QStringLiteral("Falta la contraseña."));
+		status_->setText(i18n("Falta la contraseña."));
 		return;
 	}
 	if (!password_->text().isEmpty()) {
 		QString error;
 		if (!radio::savePassword(password_->text(), &error)) {
-			status_->setText(QStringLiteral("No se pudo guardar la contraseña: %1").arg(error));
+			status_->setText(i18n("No se pudo guardar la contraseña: %1").arg(error));
 			return;
 		}
 	}

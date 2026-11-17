@@ -1,5 +1,7 @@
 #include "providers/provider.hpp"
 
+#include "core/i18n.hpp"
+
 #include <QDesktopServices>
 #include <QUrl>
 
@@ -20,13 +22,13 @@ QList<Account> Provider::destinationChoices() const
 void Provider::chooseDestination(const QString &, Callback<Account> done)
 {
 	done(Result<Account>::failure(Error::make(ErrorKind::Internal, QStringLiteral("UNSUPPORTED"),
-						  QStringLiteral("Este destino no requiere elegir página o canal."))));
+						  i18n("Este destino no requiere elegir página o canal."))));
 }
 
 void Provider::schedule(const ScheduleRequest &, Callback<ScheduledBroadcast> done)
 {
 	done(Result<ScheduledBroadcast>::failure(Error::make(ErrorKind::Internal, QStringLiteral("UNSUPPORTED"),
-							     QStringLiteral("%1 no permite programar transmisiones.").arg(displayName()))));
+							     i18n("%1 no permite programar transmisiones.").arg(displayName()))));
 }
 
 void Provider::cancelScheduled(const QString &, Callback<bool> done)
